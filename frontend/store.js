@@ -4,11 +4,11 @@
 const Store = (() => {
 
   // ── Keys ──
-  const KEYS = { patients: 'mp_patients', doctors: 'mp_doctors', allocations: 'mp_allocations', idCounters: 'mp_counters' };
+  const KEYS = { patients: 'mp_patients', doctors: 'mp_doctors', allocations: 'mp_allocations', idCounters: 'mp_counters', equipment: 'mp_equipment', slots: 'mp_slots' };
 
   // ── ID Counters ──
   function getCounters() {
-    return JSON.parse(localStorage.getItem(KEYS.idCounters) || '{"patient":1,"doctor":1,"allocation":1}');
+    return JSON.parse(localStorage.getItem(KEYS.idCounters) || '{"patient":1,"doctor":1,"allocation":1,"equipment":1,"slot":1}');
   }
   function nextId(type) {
     const c = getCounters();
@@ -121,6 +121,112 @@ const Store = (() => {
   }
 
   // ══════════════════════════════════
+  //  EQUIPMENT
+  // ══════════════════════════════════
+  function getEquipment() { return read(KEYS.equipment); }
+
+  function addEquipment(data) {
+    const all = getEquipment();
+    const e = {
+      id:               'EQ-' + String(nextId('equipment')).padStart(3, '0'),
+      name:             data.name,
+      category:         data.category,
+      facilityName:     data.facilityName,
+      facilityLocation: data.facilityLocation,
+      serialNumber:     data.serialNumber || '',
+      status:           data.status || 'Available',
+      purchaseDate:     data.purchaseDate || '',
+      createdAt:        new Date().toISOString(),
+      updatedAt:        new Date().toISOString(),
+    };
+    all.unshift(e);
+    write(KEYS.equipment, all);
+    return e;
+  }
+
+  function updateEquipmentStatus(id, status) {
+    const all = getEquipment();
+    const idx = all.findIndex(e => e.id === id);
+    if (idx !== -1) {
+      all[idx].status = status;
+      all[idx].updatedAt = new Date().toISOString();
+      write(KEYS.equipment, all);
+    }
+  }
+
+  function updateEquipmentFacility(id, facilityName, facilityLocation) {
+    const all = getEquipment();
+    const idx = all.findIndex(e => e.id === id);
+    if (idx !== -1) {
+      all[idx].facilityName = facilityName;
+      all[idx].facilityLocation = facilityLocation;
+      all[idx].updatedAt = new Date().toISOString();
+      write(KEYS.equipment, all);
+    }
+  }
+
+  function deleteEquipment(id) {
+    write(KEYS.equipment, getEquipment().filter(e => e.id !== id));
+  }
+
+  // ══════════════════════════════════
+  //  SLOTS (TELEMEDICINE)
+  // ══════════════════════════════════
+  function getSlots() { return read(KEYS.slots); }
+
+  function addSlot(data) {
+    const all = getSlots();
+    const s = {
+      id:              'SL-' + String(nextId('slot')).padStart(3, '0'),
+      doctorId:        data.doctorId,
+      doctorName:      data.doctorName,
+      doctorSpec:      data.doctorSpec,
+      doctorEmoji:     data.doctorEmoji,
+      date:            data.date,
+      time:            data.time,
+      maxPatients:     data.maxPatients || 1,
+      notes:           data.notes || '',
+      patientId:       null,
+      patientName:     null,
+      patientLocation: null,
+      status:          'Available',
+      createdAt:       new Date().toISOString(),
+    };
+    all.unshift(s);
+    write(KEYS.slots, all);
+    return s;
+  }
+
+  function bookSlot(slotId, patientId, patientName, patientLocation) {
+    const all = getSlots();
+    const idx = all.findIndex(s => s.id === slotId);
+    if (idx !== -1) {
+      all[idx].status = 'Booked';
+      all[idx].patientId = patientId;
+      all[idx].patientName = patientName;
+      all[idx].patientLocation = patientLocation;
+      write(KEYS.slots, all);
+      updatePatientStatus(patientId, 'Allocated');
+    }
+  }
+
+  function unbookSlot(slotId) {
+    const all = getSlots();
+    const idx = all.findIndex(s => s.id === slotId);
+    if (idx !== -1) {
+      all[idx].status = 'Available';
+      all[idx].patientId = null;
+      all[idx].patientName = null;
+      all[idx].patientLocation = null;
+      write(KEYS.slots, all);
+    }
+  }
+
+  function deleteSlot(id) {
+    write(KEYS.slots, getSlots().filter(s => s.id !== id));
+  }
+
+  // ══════════════════════════════════
   //  STATS (computed)
   // ══════════════════════════════════
   function getStats() {
@@ -194,5 +300,7 @@ const Store = (() => {
   return { getPatients, addPatient, deletePatient, updatePatientStatus,
            getDoctors, addDoctor, deleteDoctor, updateDoctorStatus,
            getAllocations, addAllocation,
+           getEquipment, addEquipment, updateEquipmentStatus, updateEquipmentFacility, deleteEquipment,
+           getSlots, addSlot, bookSlot, unbookSlot, deleteSlot,
            getStats, getCoverageGaps, clearAll };
 })();

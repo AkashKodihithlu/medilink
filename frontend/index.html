@@ -1,223 +1,527 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>MediLink — Dashboard</title>
-<link rel="stylesheet" href="shared.css" />
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-<script src="store.js"></script>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>MediPredict — Rural Healthcare Resource Allocator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"/>
 <style>
-  .hero{display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:center;padding:52px 0 40px;}
-  .hero-tag{display:inline-flex;align-items:center;gap:6px;background:var(--teal-light);color:var(--teal-dark);font-size:.78rem;font-weight:700;padding:5px 12px;border-radius:50px;margin-bottom:18px;text-transform:uppercase;letter-spacing:.04em;}
-  .hero h1{font-size:2.6rem;font-weight:800;line-height:1.15;margin-bottom:14px;}
-  .hero h1 span{color:var(--teal);}
-  .hero p{color:var(--muted);font-size:1rem;line-height:1.6;max-width:420px;}
-  .hero-actions{display:flex;gap:12px;margin-top:22px;flex-wrap:wrap;}
-  .analysis-card{background:var(--card);border-radius:18px;box-shadow:var(--shadow-lg);border:1px solid var(--border);overflow:hidden;}
-  .analysis-card-top{border-top:3px solid var(--teal);padding:22px 22px 14px;}
-  .confidence-row{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;}
-  .confidence-label{font-size:.76rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;}
-  .confidence-value{font-size:2.2rem;font-weight:800;color:var(--teal);line-height:1;}
-  .progress-bar{height:5px;background:var(--teal-light);border-radius:99px;overflow:hidden;}
-  .progress-fill{height:100%;background:linear-gradient(90deg,var(--teal),#38bdf8);border-radius:99px;transition:width 1.2s ease;}
-  .metrics-row{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--border);}
-  .metric-cell{background:#fff;padding:16px 18px;}
-  .metric-cell .icon{font-size:1.2rem;margin-bottom:5px;}
-  .metric-cell .name{font-size:.76rem;font-weight:700;color:var(--navy);}
-  .metric-cell .val{font-size:.95rem;font-weight:600;color:var(--slate);margin-top:2px;}
-  .charts-grid{display:grid;grid-template-columns:2fr 1fr;gap:20px;margin-top:4px;}
-  .chart-card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);border:1px solid var(--border);padding:22px;}
-  .chart-card canvas{max-height:220px;}
-  .activity-item{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);}
-  .activity-item:last-child{border-bottom:none;}
-  .activity-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
-  .activity-text{flex:1;font-size:.84rem;color:var(--slate);}
-  .activity-text strong{color:var(--navy);}
-  .activity-time{font-size:.74rem;color:var(--muted);white-space:nowrap;}
-  .empty-state{text-align:center;padding:36px 16px;color:var(--muted);font-size:.86rem;}
-  .empty-state .big{font-size:2rem;margin-bottom:8px;}
-  .gap-row{margin-bottom:14px;}
-  .gap-row-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px;}
-  .gap-loc{font-size:.82rem;font-weight:600;color:var(--slate);}
-  @media(max-width:900px){.hero{grid-template-columns:1fr;padding:28px 0;}.charts-grid{grid-template-columns:1fr;}}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --teal:#0ea5e9;--teal-dark:#0284c7;--teal-light:#e0f2fe;
+  --navy:#0f172a;--slate:#334155;--muted:#64748b;
+  --border:#e2e8f0;--card:#ffffff;
+  --green:#22c55e;--green-light:#dcfce7;
+  --shadow:0 1px 3px rgba(0,0,0,.07),0 4px 16px rgba(14,165,233,.06);
+  --shadow-lg:0 8px 32px rgba(14,165,233,.13),0 2px 8px rgba(0,0,0,.06);
+}
+html{scroll-behavior:smooth;}
+body{font-family:'Plus Jakarta Sans',sans-serif;background:#fff;color:var(--navy);overflow-x:hidden;}
+
+/* NAVBAR */
+.navbar{
+  position:fixed;top:0;left:0;right:0;z-index:100;
+  height:64px;display:flex;align-items:center;justify-content:space-between;
+  padding:0 60px;
+  background:rgba(255,255,255,0);backdrop-filter:blur(0px);
+  border-bottom:1px solid transparent;
+  transition:background .3s,backdrop-filter .3s,border-color .3s;
+}
+.navbar.scrolled{background:rgba(255,255,255,.92);backdrop-filter:blur(14px);border-color:var(--border);}
+.nav-logo{display:flex;align-items:center;gap:8px;font-size:1.2rem;font-weight:800;text-decoration:none;color:var(--navy);}
+.nav-logo svg{color:var(--teal);}
+.nav-logo span{color:var(--teal);}
+.nav-links{display:flex;align-items:center;gap:4px;}
+.nav-link{padding:7px 16px;border-radius:8px;font-size:.88rem;font-weight:500;color:var(--slate);text-decoration:none;transition:all .2s;}
+.nav-link:hover{background:var(--teal-light);color:var(--teal-dark);}
+.nav-actions{display:flex;align-items:center;gap:10px;}
+.btn-outline{padding:8px 20px;border:1.5px solid var(--navy);border-radius:50px;font-size:.875rem;font-weight:600;background:transparent;color:var(--navy);cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;transition:all .2s;font-family:inherit;}
+.btn-outline:hover{background:var(--navy);color:#fff;}
+.btn-primary{padding:8px 20px;border:none;border-radius:50px;font-size:.875rem;font-weight:600;background:var(--teal);color:#fff;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:6px;transition:all .2s;font-family:inherit;}
+.btn-primary:hover{background:var(--teal-dark);transform:translateY(-1px);box-shadow:0 4px 12px rgba(14,165,233,.35);}
+
+/* HERO */
+.hero{
+  min-height:100vh;
+  background:linear-gradient(160deg,#f0f9ff 0%,#fafffe 50%,#f0fdf4 100%);
+  display:flex;align-items:center;justify-content:center;
+  text-align:center;padding:100px 24px 60px;
+  position:relative;overflow:hidden;
+}
+.blob{position:absolute;border-radius:50%;filter:blur(80px);opacity:.35;pointer-events:none;}
+.blob1{width:500px;height:500px;background:var(--teal-light);top:-100px;right:-100px;}
+.blob2{width:400px;height:400px;background:#d1fae5;bottom:-80px;left:-80px;}
+.hero-inner{max-width:760px;position:relative;z-index:1;}
+.hero-badge{display:inline-flex;align-items:center;gap:7px;background:var(--teal-light);color:var(--teal-dark);font-size:.78rem;font-weight:700;padding:6px 14px;border-radius:50px;text-transform:uppercase;letter-spacing:.05em;margin-bottom:24px;animation:fadeUp .5s .1s both;}
+.hero h1{font-size:clamp(2.4rem,5vw,3.8rem);font-weight:800;line-height:1.1;margin-bottom:20px;animation:fadeUp .5s .2s both;}
+.hero h1 em{font-style:normal;color:var(--teal);}
+.hero p{font-size:1.1rem;color:var(--muted);line-height:1.7;max-width:560px;margin:0 auto 32px;animation:fadeUp .5s .3s both;}
+.hero-actions{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;animation:fadeUp .5s .4s both;}
+.btn-hero{padding:13px 32px;border-radius:50px;font-family:inherit;font-size:1rem;font-weight:700;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:8px;transition:all .2s;}
+.btn-hero-primary{background:var(--teal);color:#fff;border:none;}
+.btn-hero-primary:hover{background:var(--teal-dark);transform:translateY(-2px);box-shadow:0 8px 24px rgba(14,165,233,.4);}
+.btn-hero-outline{background:transparent;color:var(--navy);border:2px solid var(--border);}
+.btn-hero-outline:hover{border-color:var(--teal);color:var(--teal);}
+.hero-stats{display:flex;gap:40px;justify-content:center;flex-wrap:wrap;margin-top:56px;animation:fadeUp .5s .55s both;}
+.stat-pill{text-align:center;}
+.stat-pill .num{font-size:2rem;font-weight:800;color:var(--navy);}
+.stat-pill .lbl{font-size:.8rem;color:var(--muted);font-weight:500;margin-top:2px;}
+.scroll-hint{position:absolute;bottom:32px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:6px;color:var(--muted);font-size:.76rem;font-weight:500;animation:bounce 2s infinite;}
+.scroll-hint svg{opacity:.5;}
+@keyframes bounce{0%,100%{transform:translateX(-50%) translateY(0)}50%{transform:translateX(-50%) translateY(6px)}}
+
+/* SECTIONS */
+section{padding:96px 24px;}
+.wrap{max-width:1120px;margin:0 auto;}
+.section-tag{display:inline-flex;align-items:center;gap:6px;background:var(--teal-light);color:var(--teal-dark);font-size:.75rem;font-weight:700;padding:5px 12px;border-radius:50px;text-transform:uppercase;letter-spacing:.05em;margin-bottom:14px;}
+.section-title{font-size:clamp(1.7rem,3vw,2.4rem);font-weight:800;line-height:1.2;margin-bottom:14px;}
+.section-sub{font-size:1rem;color:var(--muted);line-height:1.7;max-width:520px;}
+
+/* FEATURES */
+#features{background:#fff;}
+.features-header{text-align:center;margin-bottom:56px;}
+.features-header .section-sub{margin:0 auto;}
+.features-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:24px;}
+.feature-card{background:#fff;border:1.5px solid var(--border);border-radius:16px;padding:28px;transition:all .25s;}
+.feature-card:hover{border-color:var(--teal);box-shadow:var(--shadow-lg);transform:translateY(-3px);}
+.feature-icon{width:48px;height:48px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:1.4rem;margin-bottom:16px;}
+.feature-card h3{font-size:1rem;font-weight:700;margin-bottom:8px;}
+.feature-card p{font-size:.875rem;color:var(--muted);line-height:1.6;}
+
+/* HOW IT WORKS */
+#how{background:linear-gradient(135deg,#f0f9ff 0%,#fafffe 100%);}
+.how-grid{display:grid;grid-template-columns:1fr 1fr;gap:64px;align-items:center;}
+.steps-list{display:flex;flex-direction:column;}
+.step-item{display:flex;gap:20px;padding:24px 0;border-bottom:1px solid var(--border);}
+.step-item:last-child{border-bottom:none;}
+.step-num-circle{width:40px;height:40px;border-radius:50%;background:var(--teal);color:#fff;font-size:.85rem;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.step-body h4{font-size:.95rem;font-weight:700;margin-bottom:5px;}
+.step-body p{font-size:.85rem;color:var(--muted);line-height:1.6;}
+.how-card{background:var(--card);border-radius:20px;box-shadow:var(--shadow-lg);border:1px solid var(--border);overflow:hidden;}
+.how-card-header{padding:20px 20px 14px;border-bottom:1px solid var(--border);}
+.criteria-list{display:flex;flex-direction:column;}
+.criteria-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 20px;border-bottom:1px solid var(--border);}
+.criteria-left{display:flex;align-items:flex-start;gap:12px;flex:1;}
+.criteria-icon{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0;}
+.criteria-name{font-size:.84rem;font-weight:700;color:var(--navy);}
+.criteria-desc{font-size:.75rem;color:var(--muted);margin-top:2px;line-height:1.4;}
+.criteria-score{font-size:.82rem;font-weight:800;white-space:nowrap;}
+
+/* ABOUT */
+#about{background:#fff;}
+.about-grid{display:grid;grid-template-columns:1fr 1fr;gap:80px;align-items:center;}
+.about-visual{background:linear-gradient(135deg,#e0f2fe,#d1fae5);border-radius:24px;padding:48px 32px;text-align:center;}
+.about-icon{font-size:5rem;margin-bottom:16px;}
+.about-tag{font-size:1.2rem;font-weight:700;color:var(--navy);}
+.about-tag span{color:var(--teal);}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px;justify-content:center;}
+.chip{background:#fff;border:1.5px solid var(--border);border-radius:50px;padding:5px 14px;font-size:.78rem;font-weight:600;color:var(--slate);}
+.about-content p{font-size:.95rem;color:var(--muted);line-height:1.75;margin-bottom:16px;}
+.about-points{display:flex;flex-direction:column;gap:12px;margin-top:8px;}
+.ap{display:flex;align-items:flex-start;gap:12px;font-size:.9rem;color:var(--slate);}
+.ap-dot{width:22px;height:22px;border-radius:50%;background:var(--green-light);display:flex;align-items:center;justify-content:center;font-size:.7rem;flex-shrink:0;margin-top:1px;}
+
+/* CONTACT */
+#contact{background:linear-gradient(135deg,#f0f9ff 0%,#f0fdf4 100%);}
+.contact-grid{display:grid;grid-template-columns:1fr 1fr;gap:56px;align-items:start;}
+.contact-list{display:flex;flex-direction:column;gap:24px;margin-top:8px;}
+.contact-block{display:flex;align-items:flex-start;gap:14px;}
+.contact-icon{width:44px;height:44px;border-radius:12px;background:var(--teal-light);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.contact-block h4{font-size:.88rem;font-weight:700;color:var(--navy);margin-bottom:3px;}
+.contact-block p{font-size:.84rem;color:var(--muted);line-height:1.5;}
+.contact-form-card{background:var(--card);border-radius:20px;box-shadow:var(--shadow-lg);border:1px solid var(--border);padding:32px;}
+.cf-title{font-size:1.05rem;font-weight:700;color:var(--navy);margin-bottom:20px;}
+.cf-fields{display:flex;flex-direction:column;gap:14px;}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.form-group{display:flex;flex-direction:column;gap:5px;}
+.form-group label{font-size:.78rem;font-weight:600;color:var(--slate);}
+.form-control{padding:10px 14px;border:1.5px solid var(--border);border-radius:10px;font-family:inherit;font-size:.88rem;color:var(--navy);background:#fff;outline:none;transition:border-color .2s;}
+.form-control:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(14,165,233,.1);}
+.form-control::placeholder{color:#94a3b8;}
+textarea.form-control{resize:vertical;min-height:100px;}
+.cf-btn{padding:12px 28px;background:var(--teal);color:#fff;border:none;border-radius:50px;font-family:inherit;font-size:.95rem;font-weight:700;cursor:pointer;width:100%;margin-top:4px;display:flex;align-items:center;justify-content:center;gap:8px;transition:all .2s;}
+.cf-btn:hover{background:var(--teal-dark);box-shadow:0 4px 14px rgba(14,165,233,.35);}
+.cf-success{display:none;background:var(--green-light);border:1.5px solid #bbf7d0;border-radius:10px;padding:14px;font-size:.88rem;color:#15803d;font-weight:600;text-align:center;margin-top:12px;}
+
+/* CTA */
+.cta-banner{background:linear-gradient(135deg,var(--teal-dark) 0%,var(--teal) 60%,#38bdf8 100%);padding:80px 24px;text-align:center;}
+.cta-banner h2{font-size:clamp(1.8rem,3vw,2.6rem);font-weight:800;color:#fff;margin-bottom:14px;}
+.cta-banner p{color:rgba(255,255,255,.8);font-size:1rem;max-width:480px;margin:0 auto 32px;line-height:1.6;}
+.cta-actions{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;}
+.btn-white{padding:13px 32px;background:#fff;color:var(--teal-dark);border:none;border-radius:50px;font-family:inherit;font-size:1rem;font-weight:700;cursor:pointer;text-decoration:none;transition:all .2s;}
+.btn-white:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.2);}
+.btn-ghost-white{padding:13px 32px;background:transparent;color:#fff;border:2px solid rgba(255,255,255,.5);border-radius:50px;font-family:inherit;font-size:1rem;font-weight:700;cursor:pointer;text-decoration:none;transition:all .2s;}
+.btn-ghost-white:hover{background:rgba(255,255,255,.15);border-color:#fff;}
+
+/* FOOTER */
+footer{background:var(--navy);color:rgba(255,255,255,.7);padding:48px 24px 28px;}
+.footer-inner{max-width:1120px;margin:0 auto;}
+.footer-top{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:32px;margin-bottom:40px;}
+.footer-brand{max-width:280px;}
+.footer-logo{display:flex;align-items:center;gap:8px;font-size:1.1rem;font-weight:800;color:#fff;text-decoration:none;margin-bottom:10px;}
+.footer-logo svg{color:var(--teal);}
+.footer-logo span{color:var(--teal);}
+.footer-brand p{font-size:.84rem;line-height:1.6;}
+.footer-links h4{font-size:.82rem;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:.06em;margin-bottom:14px;}
+.footer-links ul{list-style:none;display:flex;flex-direction:column;gap:9px;}
+.footer-links a{color:rgba(255,255,255,.65);text-decoration:none;font-size:.85rem;transition:color .2s;}
+.footer-links a:hover{color:var(--teal);}
+.footer-bottom{border-top:1px solid rgba(255,255,255,.1);padding-top:20px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;font-size:.8rem;}
+.notice-pill{display:inline-flex;align-items:center;gap:6px;background:rgba(255,165,0,.12);border:1px solid rgba(255,165,0,.3);color:#fcd34d;border-radius:50px;padding:4px 12px;font-size:.72rem;font-weight:500;margin-top:12px;}
+
+/* ANIMATIONS */
+@keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:none}}
+.reveal{opacity:0;transform:translateY(28px);transition:opacity .6s ease,transform .6s ease;}
+.reveal.visible{opacity:1;transform:none;}
+
+/* RESPONSIVE */
+@media(max-width:900px){
+  .navbar{padding:0 20px;}
+  .nav-links{display:none;}
+  .how-grid,.about-grid,.contact-grid{grid-template-columns:1fr;gap:36px;}
+}
+@media(max-width:600px){
+  .hero-stats{gap:20px;}
+  .two-col{grid-template-columns:1fr;}
+  .stat-pill+.stat-pill{border-left:none!important;padding-left:0!important;}
+}
 </style>
 </head>
 <body>
-<nav class="navbar">
-  <a href="index.html" class="nav-logo"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg><span>Medi</span>link</a>
+
+<!-- NAVBAR -->
+<nav class="navbar" id="navbar">
+  <a href="index.html" class="nav-logo">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+    <span>Medi</span>Predict
+  </a>
   <div class="nav-links">
-    <a href="index.html" class="nav-link active">Dashboard</a>
-    <a href="patients.html" class="nav-link">Patients</a>
-    <a href="doctors.html" class="nav-link">Doctors</a>
-    <a href="allocate.html" class="nav-link">Allocator</a>
+    <a href="#features" class="nav-link">Features</a>
+    <a href="#how" class="nav-link">How it Works</a>
+    <a href="#about" class="nav-link">About Us</a>
+    <a href="#contact" class="nav-link">Contact</a>
   </div>
   <div class="nav-actions">
     <a href="login.html" class="btn-outline">Log In</a>
-    <a href="signup.html" class="btn-primary">Register</a>
+    <a href="signup.html" class="btn-primary">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+      Register
+    </a>
   </div>
 </nav>
 
-<div class="page-wrapper">
-  <div class="hero">
-    <div>
-      <div class="hero-tag"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>smart allocation system</div>
-      <h1>Rural Healthcare<br><span>Resource Allocator</span></h1>
-      <p>Allocate healthcare resources efficiently across underserved rural regions. Register patients, add doctors, and match them intelligently.</p>
-      <div style="margin-top:16px;"><div class="notice-pill"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>For resource management only · Not a medical diagnosis</div></div>
-      <div class="hero-actions"><a href="allocate.html" class="btn-teal">Start Allocation</a><a href="patients.html" class="btn-ghost">Manage Patients</a></div>
+<!-- HERO -->
+<section class="hero">
+  <div class="blob blob1"></div>
+  <div class="blob blob2"></div>
+  <div class="hero-inner">
+    <div class="hero-badge">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      Smart Allocation System
     </div>
-    <div class="analysis-card">
-      <div class="analysis-card-top">
-        <div class="confidence-row">
-          <div><div class="confidence-label">Allocation Efficiency</div><div class="confidence-value" id="effPct">0%</div></div>
-          <span class="badge badge-gray" id="sysBadge">No Data</span>
+    <h1>Smarter Resource Allocation<br>for <em>Rural Healthcare</em></h1>
+    <p>Bridge the gap between patients and care. MediPredict intelligently matches patients to available doctors, transport, and telemedicine slots across underserved regions.</p>
+    <div class="hero-actions">
+      <a href="signup.html" class="btn-hero btn-hero-primary">
+        Get Started Free
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+      </a>
+      <a href="dashboard.html" class="btn-hero btn-hero-outline">View Dashboard →</a>
+    </div>
+  </div>
+  <div class="scroll-hint">
+    <span>Scroll to explore</span>
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section id="features">
+  <div class="wrap">
+    <div class="features-header reveal">
+      <div class="section-tag"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>Features</div>
+      <h2 class="section-title">Everything you need to allocate care smarter</h2>
+      <p class="section-sub">From patient registration to emergency dispatch — MediPredict handles the full healthcare resource lifecycle.</p>
+    </div>
+    <div class="features-grid">
+      <div class="feature-card reveal"><div class="feature-icon" style="background:#e0f2fe">🧑‍⚕️</div><h3>Patient Management</h3><p>Register patients with urgency levels, location, and consultation preferences. Color-coded priority ensures critical cases are never missed.</p></div>
+      <div class="feature-card reveal"><div class="feature-icon" style="background:#dcfce7">🩺</div><h3>Doctor Registry</h3><p>Maintain a live registry of doctors and specialists with availability, location, and telemedicine capability. Filter and search in real time.</p></div>
+      <div class="feature-card reveal"><div class="feature-icon" style="background:#fff7ed">⚡</div><h3>Smart Allocation Engine</h3><p>AI-powered matching scores doctors on specialization fit, proximity, and availability. Finds the best match in seconds, not hours.</p></div>
+      <div class="feature-card reveal"><div class="feature-icon" style="background:#f3e8ff">📡</div><h3>Telemedicine Support</h3><p>Automatically identifies tele-enabled doctors for remote consultations, skipping unnecessary transport for eligible patients.</p></div>
+      <div class="feature-card reveal"><div class="feature-icon" style="background:#fef9c3">🚑</div><h3>Emergency Transport</h3><p>Dispatch ambulances and mobile clinics with ETA tracking. Transport is automatically matched by proximity and case severity.</p></div>
+      <div class="feature-card reveal"><div class="feature-icon" style="background:#fce7f3">🗺️</div><h3>Coverage Gap Analyzer</h3><p>Identify underserved regions, missing specializations, and resource shortages through live analytics computed from real data.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section id="how">
+  <div class="wrap">
+    <div class="how-grid">
+      <div class="reveal">
+        <div class="section-tag"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>How it Works</div>
+        <h2 class="section-title">From registration to allocation in 3 steps</h2>
+        <p class="section-sub" style="margin-bottom:32px">No complex setup. Add your data and let the system do the matching.</p>
+        <div class="steps-list">
+          <div class="step-item">
+            <div class="step-num-circle">1</div>
+            <div class="step-body"><h4>Register Patients & Doctors</h4><p>Add patient details with location, condition, urgency, and consultation type. Maintain a live doctor registry with specializations and real-time availability.</p></div>
+          </div>
+          <div class="step-item">
+            <div class="step-num-circle">2</div>
+            <div class="step-body"><h4>System Finds the Best Match</h4><p>The allocation engine scores available doctors against patient needs — specialization, location, urgency, and telemedicine preference all factor in.</p></div>
+          </div>
+          <div class="step-item">
+            <div class="step-num-circle">3</div>
+            <div class="step-body"><h4>Confirm & Dispatch</h4><p>Review the match, confirm allocation. Doctor is marked busy, patient marked allocated, and the dashboard updates instantly across all pages.</p></div>
+          </div>
         </div>
-        <div class="progress-bar"><div class="progress-fill" id="effBar" style="width:0%"></div></div>
       </div>
-      <div class="metrics-row">
-        <div class="metric-cell"><div class="icon">🧑‍⚕️</div><div class="name">Total Patients</div><div class="val" id="hP">0</div></div>
-        <div class="metric-cell"><div class="icon">🩺</div><div class="name">Avail. Doctors</div><div class="val" id="hD">0</div></div>
-        <div class="metric-cell"><div class="icon">⚡</div><div class="name">Critical Cases</div><div class="val" id="hC">0</div></div>
-        <div class="metric-cell"><div class="icon">📡</div><div class="name">Tele-Enabled</div><div class="val" id="hT">0</div></div>
+      <div class="reveal">
+        <div class="how-card">
+          <div class="how-card-header">
+            <div style="font-size:.76rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em">Matching Criteria</div>
+            <div style="font-size:1rem;font-weight:800;color:var(--navy);margin-top:4px">How doctors are scored</div>
+          </div>
+
+          <div class="criteria-list">
+            <div class="criteria-row">
+              <div class="criteria-left">
+                <div class="criteria-icon" style="background:#e0f2fe">🩺</div>
+                <div>
+                  <div class="criteria-name">Specialization Match</div>
+                  <div class="criteria-desc">Doctor's specialty matches what the patient needs</div>
+                </div>
+              </div>
+              <div class="criteria-score" style="color:var(--teal)">+40 pts</div>
+            </div>
+            <div class="criteria-row">
+              <div class="criteria-left">
+                <div class="criteria-icon" style="background:#dcfce7">📍</div>
+                <div>
+                  <div class="criteria-name">Same Location</div>
+                  <div class="criteria-desc">Doctor is in the same district as the patient</div>
+                </div>
+              </div>
+              <div class="criteria-score" style="color:#16a34a">+20 pts</div>
+            </div>
+            <div class="criteria-row">
+              <div class="criteria-left">
+                <div class="criteria-icon" style="background:#f3e8ff">📡</div>
+                <div>
+                  <div class="criteria-name">Telemedicine Fit</div>
+                  <div class="criteria-desc">Tele-enabled doctor for remote consultation</div>
+                </div>
+              </div>
+              <div class="criteria-score" style="color:#7c3aed">+10 pts</div>
+            </div>
+            <div class="criteria-row">
+              <div class="criteria-left">
+                <div class="criteria-icon" style="background:#fff7ed">⚡</div>
+                <div>
+                  <div class="criteria-name">Urgency Priority</div>
+                  <div class="criteria-desc">Critical cases are moved to the top of the queue</div>
+                </div>
+              </div>
+              <div class="criteria-score" style="color:#ea580c">Priority</div>
+            </div>
+            <div class="criteria-row" style="border-bottom:none">
+              <div class="criteria-left">
+                <div class="criteria-icon" style="background:#dcfce7">✅</div>
+                <div>
+                  <div class="criteria-name">Availability Check</div>
+                  <div class="criteria-desc">Only doctors with Available status are suggested</div>
+                </div>
+              </div>
+              <div class="criteria-score" style="color:#16a34a">Required</div>
+            </div>
+          </div>
+
+          <div style="padding:14px 20px;text-align:center;border-top:1px solid var(--border)">
+            <a href="allocate.html" style="font-size:.84rem;color:var(--teal);font-weight:700;text-decoration:none">Try the Allocator →</a>
+          </div>
+        </div>
       </div>
     </div>
   </div>
+</section>
 
-  <div class="stats-grid">
-    <div class="stat-card"><div class="stat-icon" style="background:#e0f2fe;">🏥</div><div class="stat-label">Total Patients</div><div class="stat-value" id="sP">0</div><div class="stat-sub" id="sPen">0 pending</div></div>
-    <div class="stat-card"><div class="stat-icon" style="background:#dcfce7;">👨‍⚕️</div><div class="stat-label">Available Doctors</div><div class="stat-value" id="sAD">0</div><div class="stat-sub" id="sTD">of 0 total</div></div>
-    <div class="stat-card"><div class="stat-icon" style="background:#fff7ed;">⚡</div><div class="stat-label">Critical Cases</div><div class="stat-value" id="sCrit">0</div><div class="stat-sub">Needs attention</div></div>
-    <div class="stat-card"><div class="stat-icon" style="background:#fef9c3;">✅</div><div class="stat-label">Allocations Made</div><div class="stat-value" id="sAlloc">0</div><div class="stat-sub">Total confirmed</div></div>
-    <div class="stat-card"><div class="stat-icon" style="background:#f3e8ff;">📡</div><div class="stat-label">Tele Doctors</div><div class="stat-value" id="sTele">0</div><div class="stat-sub">For remote consult</div></div>
+<!-- ABOUT -->
+<section id="about">
+  <div class="wrap">
+    <div class="about-grid">
+      <div class="reveal">
+        <div class="about-visual">
+          <div class="about-icon">🏥</div>
+          <div class="about-tag">Built for <span>Rural India</span></div>
+          <p style="font-size:.84rem;color:var(--muted);margin-top:8px;line-height:1.6">Designed around real challenges of healthcare access in districts like Bidar, Kalaburagi, Vijayapura, Dharwad, and beyond.</p>
+          <div class="chips">
+            <span class="chip">MySQL 8.0</span>
+            <span class="chip">Flask / Node.js</span>
+            <span class="chip">Chart.js</span>
+            <span class="chip">HTML · CSS · JS</span>
+          </div>
+        </div>
+      </div>
+      <div class="about-content reveal">
+        <div class="section-tag"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>About Us</div>
+        <h2 class="section-title">Closing the rural healthcare gap with data</h2>
+        <p>Access to quality healthcare in rural and remote areas is severely limited — uneven distribution of medical professionals, lack of specialists, insufficient emergency transport, and poor coordination between facilities.</p>
+        <p>MediPredict is a centralized, database-driven system that tracks patients, healthcare providers, facilities, equipment, telemedicine slots, and transport across rural regions — and intelligently allocates them in real time.</p>
+        <div class="about-points">
+          <div class="ap"><div class="ap-dot">✓</div>Allocation of doctors and specialists based on real availability and patient needs</div>
+          <div class="ap"><div class="ap-dot">✓</div>Telemedicine appointment management across districts</div>
+          <div class="ap"><div class="ap-dot">✓</div>Mobile clinic and ambulance dispatch coordination</div>
+          <div class="ap"><div class="ap-dot">✓</div>Data-driven identification of underserved regions and specialist shortages</div>
+        </div>
+      </div>
+    </div>
   </div>
+</section>
 
-  <div class="charts-grid">
-    <div class="chart-card">
-      <div class="section-title">Patients vs Doctors by Region</div>
-      <canvas id="barChart" style="display:none"></canvas>
-      <div id="barEmpty" class="empty-state"><div class="big">📊</div>Add patients and doctors to see the regional breakdown.</div>
-    </div>
-    <div class="chart-card">
-      <div class="section-title">Patient Urgency Mix</div>
-      <canvas id="pieChart" style="display:none"></canvas>
-      <div id="pieEmpty" class="empty-state"><div class="big">🥧</div>No patients registered yet.</div>
+<!-- CONTACT -->
+<section id="contact">
+  <div class="wrap">
+    <div class="contact-grid">
+      <div class="reveal">
+        <div class="section-tag"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.65 3.35 2 2 0 0 1 3.62 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.6a16 16 0 0 0 6 6l.96-.96a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 21.5 16z"/></svg>Contact</div>
+        <h2 class="section-title">Get in touch with us</h2>
+        <p class="section-sub" style="margin-bottom:36px">Have questions or want to deploy MediPredict in your district? Reach out — we respond within 24 hours.</p>
+        <div class="contact-list">
+          <div class="contact-block">
+            <div class="contact-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></div>
+            <div><h4>Email</h4><p>contact@medipredict.health<br>support@medipredict.health</p></div>
+          </div>
+          <div class="contact-block">
+            <div class="contact-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg></div>
+            <div><h4>Based in</h4><p>Karnataka, India<br>Serving rural districts across the state</p></div>
+          </div>
+          <div class="contact-block">
+            <div class="contact-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+            <div><h4>Response Time</h4><p>We respond to all inquiries<br>within 24 hours on business days</p></div>
+          </div>
+        </div>
+      </div>
+      <div class="reveal">
+        <div class="contact-form-card">
+          <div class="cf-title">✉️ Send us a message</div>
+          <div class="cf-fields">
+            <div class="two-col">
+              <div class="form-group"><label>First Name</label><input id="cf-fname" type="text" class="form-control" placeholder="First name"/></div>
+              <div class="form-group"><label>Last Name</label><input id="cf-lname" type="text" class="form-control" placeholder="Last name"/></div>
+            </div>
+            <div class="form-group"><label>Email Address</label><input id="cf-email" type="email" class="form-control" placeholder="you@example.com"/></div>
+            <div class="form-group"><label>Subject</label>
+              <select id="cf-subject" class="form-control">
+                <option value="">Select a topic…</option>
+                <option>General Inquiry</option>
+                <option>Deployment in my district</option>
+                <option>Technical Support</option>
+                <option>Partnership</option>
+                <option>Other</option>
+              </select>
+            </div>
+            <div class="form-group"><label>Message</label><textarea id="cf-message" class="form-control" placeholder="Tell us how we can help…"></textarea></div>
+            <button class="cf-btn" onclick="sendMessage()">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+              Send Message
+            </button>
+            <div class="cf-success" id="cfSuccess">✓ Message sent! We'll get back to you within 24 hours.</div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
+</section>
 
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:20px;">
-    <div class="card">
-      <div class="section-title">Recent Allocations</div>
-      <div id="recentAlloc"></div>
-    </div>
-    <div class="card">
-      <div class="section-title">Coverage Gap Summary</div>
-      <div id="coverageGaps"></div>
-    </div>
+<!-- CTA BANNER -->
+<div class="cta-banner reveal">
+  <h2>Ready to transform rural healthcare?</h2>
+  <p>Join MediPredict and start allocating healthcare resources intelligently across your region today.</p>
+  <div class="cta-actions">
+    <a href="signup.html" class="btn-white">Create Free Account →</a>
+    <a href="dashboard.html" class="btn-ghost-white">Explore Dashboard</a>
   </div>
 </div>
 
+<!-- FOOTER -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-top">
+      <div class="footer-brand">
+        <a href="index.html" class="footer-logo">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          <span>Medi</span>Predict
+        </a>
+        <p>A centralized, database-driven rural healthcare resource allocator bridging the gap between patients and care.</p>
+        <div class="notice-pill">⚠ Resource management only · Not a medical diagnosis system</div>
+      </div>
+      <div class="footer-links">
+        <h4>Navigation</h4>
+        <ul>
+          <li><a href="#features">Features</a></li>
+          <li><a href="#how">How it Works</a></li>
+          <li><a href="#about">About Us</a></li>
+          <li><a href="#contact">Contact</a></li>
+        </ul>
+      </div>
+      <div class="footer-links">
+        <h4>System</h4>
+        <ul>
+          <li><a href="dashboard.html">Dashboard</a></li>
+          <li><a href="patients.html">Patient Management</a></li>
+          <li><a href="doctors.html">Doctor Registry</a></li>
+          <li><a href="allocate.html">Resource Allocator</a></li>
+        </ul>
+      </div>
+      <div class="footer-links">
+        <h4>Account</h4>
+        <ul>
+          <li><a href="login.html">Log In</a></li>
+          <li><a href="signup.html">Register</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2025 MediPredict. Built for rural healthcare resource allocation.</span>
+      <span>Made with ❤️ for Karnataka's rural communities</span>
+    </div>
+  </div>
+</footer>
+
 <script>
-let barInst=null, pieInst=null;
+// Navbar scroll
+const navbar = document.getElementById('navbar');
+window.addEventListener('scroll', () => navbar.classList.toggle('scrolled', window.scrollY > 40));
 
-function timeAgo(iso){
-  const m=Math.floor((Date.now()-new Date(iso))/60000);
-  if(m<1) return 'just now'; if(m<60) return m+'m ago';
-  const h=Math.floor(m/60); if(h<24) return h+'h ago';
-  return Math.floor(h/24)+'d ago';
+// Scroll reveal
+const obs = new IntersectionObserver(entries => {
+  entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+}, { threshold: 0.1 });
+document.querySelectorAll('.reveal').forEach(el => obs.observe(el));
+
+// Contact form
+function sendMessage() {
+  const fname   = document.getElementById('cf-fname').value.trim();
+  const email   = document.getElementById('cf-email').value.trim();
+  const message = document.getElementById('cf-message').value.trim();
+  if (!fname || !email || !message) { alert('Please fill in your name, email, and message.'); return; }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { alert('Please enter a valid email address.'); return; }
+  ['cf-fname','cf-lname','cf-email','cf-message'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('cf-subject').value = '';
+  const success = document.getElementById('cfSuccess');
+  success.style.display = 'block';
+  setTimeout(() => success.style.display = 'none', 5000);
 }
 
-function render(){
-  const stats=Store.getStats(), gaps=Store.getCoverageGaps();
-  const patients=Store.getPatients(), doctors=Store.getDoctors(), allocs=Store.getAllocations().slice(0,5);
-
-  // Efficiency
-  const eff=stats.totalPatients===0?0:Math.min(100,Math.round((stats.totalAllocations/Math.max(stats.totalPatients,1))*100));
-  document.getElementById('effPct').textContent=eff+'%';
-  document.getElementById('effBar').style.width=eff+'%';
-  const b=document.getElementById('sysBadge');
-  if(eff>=70){b.className='badge badge-green';b.textContent='● Optimal';}
-  else if(eff>=30){b.className='badge badge-yellow';b.textContent='● Moderate';}
-  else if(stats.totalPatients>0){b.className='badge badge-orange';b.textContent='● Low';}
-  else{b.className='badge badge-gray';b.textContent='No Data';}
-
-  document.getElementById('hP').textContent=stats.totalPatients;
-  document.getElementById('hD').textContent=stats.availableDoctors;
-  document.getElementById('hC').textContent=stats.criticalPatients;
-  document.getElementById('hT').textContent=stats.teleEnabled;
-  document.getElementById('sP').textContent=stats.totalPatients;
-  document.getElementById('sPen').textContent=stats.pendingPatients+' pending';
-  document.getElementById('sAD').textContent=stats.availableDoctors;
-  document.getElementById('sTD').textContent='of '+stats.totalDoctors+' total';
-  document.getElementById('sCrit').textContent=stats.criticalPatients;
-  document.getElementById('sAlloc').textContent=stats.totalAllocations;
-  document.getElementById('sTele').textContent=stats.teleEnabled;
-
-  // Bar
-  const locMap={};
-  patients.forEach(p=>{locMap[p.location]=locMap[p.location]||{p:0,d:0};locMap[p.location].p++;});
-  doctors.forEach(d=>{locMap[d.loc]=locMap[d.loc]||{p:0,d:0};locMap[d.loc].d++;});
-  const labels=Object.keys(locMap);
-  if(labels.length===0){
-    document.getElementById('barChart').style.display='none';
-    document.getElementById('barEmpty').style.display='block';
-  } else {
-    document.getElementById('barChart').style.display='';
-    document.getElementById('barEmpty').style.display='none';
-    if(barInst) barInst.destroy();
-    barInst=new Chart(document.getElementById('barChart').getContext('2d'),{
-      type:'bar',
-      data:{labels,datasets:[
-        {label:'Patients',data:labels.map(l=>locMap[l].p),backgroundColor:'#0ea5e9',borderRadius:6},
-        {label:'Doctors', data:labels.map(l=>locMap[l].d),backgroundColor:'#bae6fd',borderRadius:6}
-      ]},
-      options:{responsive:true,maintainAspectRatio:true,
-        plugins:{legend:{labels:{font:{family:'Plus Jakarta Sans',size:11},boxWidth:12}}},
-        scales:{x:{grid:{display:false},ticks:{font:{family:'Plus Jakarta Sans',size:10}}},
-                y:{grid:{color:'#f1f5f9'},ticks:{font:{family:'Plus Jakarta Sans',size:10},stepSize:1}}}}
-    });
-  }
-
-  // Pie
-  const uc={Critical:0,High:0,Moderate:0,Low:0};
-  patients.forEach(p=>{if(uc[p.urgency]!==undefined) uc[p.urgency]++;});
-  if(Object.values(uc).every(v=>v===0)){
-    document.getElementById('pieChart').style.display='none';
-    document.getElementById('pieEmpty').style.display='block';
-  } else {
-    document.getElementById('pieChart').style.display='';
-    document.getElementById('pieEmpty').style.display='none';
-    if(pieInst) pieInst.destroy();
-    pieInst=new Chart(document.getElementById('pieChart').getContext('2d'),{
-      type:'doughnut',
-      data:{labels:['Critical','High','Moderate','Low'],
-            datasets:[{data:Object.values(uc),backgroundColor:['#ef4444','#f97316','#eab308','#22c55e'],borderWidth:0}]},
-      options:{responsive:true,maintainAspectRatio:true,cutout:'62%',
-        plugins:{legend:{position:'bottom',labels:{font:{family:'Plus Jakarta Sans',size:11},boxWidth:12,padding:12}}}}
-    });
-  }
-
-  // Recent allocs
-  const ra=document.getElementById('recentAlloc');
-  ra.innerHTML=allocs.length===0
-    ?`<div class="empty-state"><div class="big">🔗</div>No allocations yet. <a href="allocate.html" style="color:var(--teal);font-weight:600;">Start one →</a></div>`
-    :allocs.map(a=>`<div class="activity-item"><div class="activity-dot" style="background:var(--teal)"></div><div class="activity-text"><strong>${a.patientName}</strong> → ${a.doctorName} (${a.doctorSpec})</div><div class="activity-time">${timeAgo(a.confirmedAt)}</div></div>`).join('');
-
-  // Coverage gaps
-  const cg=document.getElementById('coverageGaps');
-  if(gaps.length===0){
-    cg.innerHTML=`<div class="empty-state"><div class="big">🗺️</div>Add patients and doctors to see coverage analysis.</div>`;
-  } else {
-    const colorMap={Critical:['#ef4444','badge-red'],Moderate:['#f97316','badge-orange'],Low:['#eab308','badge-yellow'],Good:['var(--teal)','badge-green']};
-    cg.innerHTML=gaps.slice(0,6).map(g=>{
-      const[clr,bc]=colorMap[g.severity];
-      const pct=g.severity==='Good'?100:Math.max(6,g.coverage);
-      const miss=g.missingSpecs.length?`<div style="font-size:.72rem;color:var(--muted)">Missing: ${g.missingSpecs.join(', ')}</div>`:'';
-      return`<div class="gap-row"><div class="gap-row-top"><div><span class="gap-loc">${g.loc}</span>${miss}</div><span class="badge ${bc}">${g.severity}</span></div><div class="progress-bar"><div class="progress-fill" style="width:${pct}%;background:${clr}"></div></div><div style="font-size:.72rem;color:var(--muted);margin-top:3px">${g.patients} patient${g.patients!==1?'s':''} · ${g.doctors} doctor${g.doctors!==1?'s':''}</div></div>`;
-    }).join('');
-  }
-}
-
-render();
+// Smooth scroll
+document.querySelectorAll('a[href^="#"]').forEach(a => {
+  a.addEventListener('click', e => {
+    const t = document.querySelector(a.getAttribute('href'));
+    if (t) { e.preventDefault(); t.scrollIntoView({ behavior: 'smooth' }); }
+  });
+});
 </script>
 </body>
 </html>
