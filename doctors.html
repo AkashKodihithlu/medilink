@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>MediPredict — Doctors</title>
+<link rel="stylesheet" href="shared.css"/>
+<script src="store.js"></script>
+<style>
+  .top-bar{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:12px;}
+  .search-bar{display:flex;align-items:center;gap:8px;background:#fff;border:1.5px solid var(--border);border-radius:10px;padding:8px 14px;min-width:200px;}
+  .search-bar input{border:none;outline:none;font-family:inherit;font-size:.88rem;color:var(--navy);width:100%;}
+  .filter-select{padding:7px 12px;border:1.5px solid var(--border);border-radius:8px;font-family:inherit;font-size:.82rem;color:var(--slate);outline:none;cursor:pointer;background:#fff;}
+  .filter-select:focus{border-color:var(--teal);}
+  .action-btn{background:none;border:1.5px solid var(--border);border-radius:6px;padding:4px 10px;font-size:.78rem;font-weight:600;cursor:pointer;transition:all .15s;color:var(--slate);}
+  .action-btn:hover{border-color:var(--teal);color:var(--teal);}
+  .action-btn.danger:hover{border-color:var(--red);color:var(--red);}
+  .cards-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:16px;margin-bottom:28px;}
+  .doc-card{background:var(--card);border-radius:var(--radius);border:1.5px solid var(--border);padding:20px;transition:box-shadow .2s,border-color .2s;box-shadow:var(--shadow);}
+  .doc-card:hover{box-shadow:var(--shadow-lg);border-color:#bae6fd;}
+  .doc-card-top{display:flex;align-items:center;gap:14px;margin-bottom:12px;}
+  .doc-avatar{width:46px;height:46px;border-radius:50%;background:linear-gradient(135deg,var(--teal-light),#bae6fd);display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0;}
+  .doc-name{font-size:.92rem;font-weight:700;color:var(--navy);}
+  .doc-spec{font-size:.76rem;color:var(--teal-dark);font-weight:600;margin-top:2px;}
+  .doc-detail{font-size:.78rem;color:var(--muted);display:flex;align-items:center;gap:5px;margin-top:4px;}
+  .doc-meta{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px;}
+  .doc-footer{margin-top:14px;padding-top:12px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;}
+  .view-toggle{display:flex;gap:4px;background:#f1f5f9;border-radius:8px;padding:3px;}
+  .view-btn{background:none;border:none;padding:5px 10px;border-radius:6px;cursor:pointer;color:var(--muted);font-size:.8rem;font-weight:600;transition:all .15s;}
+  .view-btn.active{background:#fff;color:var(--navy);box-shadow:0 1px 3px rgba(0,0,0,.1);}
+  .table-card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);border:1px solid var(--border);overflow:hidden;}
+  .table-card-header{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;}
+  .count-chip{background:var(--teal-light);color:var(--teal-dark);border-radius:50px;padding:2px 10px;font-size:.75rem;font-weight:700;}
+  .empty-state{text-align:center;padding:52px 20px;color:var(--muted);font-size:.86rem;}
+  .empty-state .big{font-size:2.5rem;margin-bottom:12px;}
+  /* Modal */
+  .modal-backdrop{display:none;position:fixed;inset:0;background:rgba(15,23,42,.45);backdrop-filter:blur(4px);z-index:200;align-items:center;justify-content:center;padding:24px;}
+  .modal-backdrop.open{display:flex;}
+  .modal{background:#fff;border-radius:20px;box-shadow:0 24px 64px rgba(0,0,0,.18);width:100%;max-width:540px;max-height:90vh;overflow-y:auto;animation:modalIn .22s ease;}
+  @keyframes modalIn{from{opacity:0;transform:translateY(16px) scale(.97)}to{opacity:1;transform:none}}
+  .modal-header{padding:22px 26px 0;display:flex;justify-content:space-between;align-items:center;}
+  .modal-header h2{font-size:1.05rem;font-weight:800;color:var(--navy);}
+  .modal-close{width:30px;height:30px;border-radius:50%;border:1.5px solid var(--border);background:none;cursor:pointer;font-size:.9rem;color:var(--muted);display:flex;align-items:center;justify-content:center;transition:all .15s;}
+  .modal-close:hover{background:#f1f5f9;color:var(--navy);}
+  .modal-body{padding:18px 26px 4px;}
+  .modal-footer{padding:12px 26px 22px;display:flex;gap:10px;}
+</style>
+</head>
+<body>
+<nav class="navbar">
+  <a href="index.html" class="nav-logo"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg><span>Medi</span>link</a>
+  <div class="nav-links">
+    <a href="index.html" class="nav-link">Dashboard</a>
+    <a href="patients.html" class="nav-link">Patients</a>
+    <a href="doctors.html" class="nav-link active">Doctors</a>
+    <a href="allocate.html" class="nav-link">Allocator</a>
+  </div>
+  <div class="nav-actions"><a href="login.html" class="btn-outline">Log In</a><a href="signup.html" class="btn-primary">Register</a></div>
+</nav>
+
+<div class="page-wrapper">
+  <div class="page-header" style="display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:12px;">
+    <div><h1>Doctor Registry</h1><p>Browse and filter healthcare providers by specialization, location, and availability.</p></div>
+    <button class="btn-primary" onclick="openModal()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Add Doctor</button>
+  </div>
+
+  <!-- STATS -->
+  <div class="stats-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:20px;">
+    <div class="stat-card"><div class="stat-label">Total Doctors</div><div class="stat-value" id="stTotal">0</div></div>
+    <div class="stat-card"><div class="stat-label">Available Now</div><div class="stat-value" id="stAvail" style="color:var(--green)">0</div></div>
+    <div class="stat-card"><div class="stat-label">Tele-Enabled</div><div class="stat-value" id="stTele" style="color:var(--teal)">0</div></div>
+    <div class="stat-card"><div class="stat-label">Specializations</div><div class="stat-value" id="stSpecs">0</div></div>
+  </div>
+
+  <!-- FILTERS -->
+  <div class="top-bar">
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+      <select class="filter-select" id="specFilter" onchange="applyFilters()">
+        <option value="">All Specializations</option>
+        <option>General</option><option>Cardiology</option><option>Pediatrics</option>
+        <option>Orthopedics</option><option>Gynecology</option><option>Neurology</option><option>Dermatology</option>
+      </select>
+      <select class="filter-select" id="availFilter" onchange="applyFilters()">
+        <option value="">Any Availability</option>
+        <option value="Available">Available</option>
+        <option value="Busy">Busy</option>
+      </select>
+      <select class="filter-select" id="teleFilter" onchange="applyFilters()">
+        <option value="">Tele / In-Person</option>
+        <option value="yes">Telemedicine ✓</option>
+        <option value="no">In-Person Only</option>
+      </select>
+      <div class="search-bar">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2.2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input id="searchInput" placeholder="Search doctor or location…" oninput="applyFilters()"/>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <span style="font-size:.82rem;color:var(--muted)">View:</span>
+      <div class="view-toggle">
+        <button class="view-btn active" id="cardViewBtn" onclick="setView('card')">⊞ Cards</button>
+        <button class="view-btn" id="tableViewBtn" onclick="setView('table')">☰ Table</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CARD VIEW -->
+  <div id="cardView" class="cards-grid"></div>
+
+  <!-- TABLE VIEW -->
+  <div id="tableView" class="table-card" style="display:none;">
+    <div class="table-card-header">
+      <div style="display:flex;align-items:center;gap:10px;"><h2>All Doctors</h2><span class="count-chip" id="docCount">0</span></div>
+    </div>
+    <div class="table-wrap">
+      <table><thead><tr><th>ID</th><th>Name</th><th>Specialization</th><th>Location</th><th>Experience</th><th>Telemedicine</th><th>Status</th><th>Actions</th></tr></thead>
+      <tbody id="docTableBody"></tbody></table>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div class="modal-backdrop" id="modalBackdrop" onclick="backdropClick(event)">
+  <div class="modal">
+    <div class="modal-header"><h2>➕ Add New Doctor</h2><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group"><label>Full Name *</label><input id="d_name" class="form-control" placeholder="e.g. Dr. Anita Reddy"/></div>
+        <div class="form-group"><label>Specialization *</label>
+          <select id="d_spec" class="form-control"><option value="">Select…</option>
+            <option>General</option><option>Cardiology</option><option>Pediatrics</option>
+            <option>Orthopedics</option><option>Gynecology</option><option>Neurology</option><option>Dermatology</option>
+          </select>
+        </div>
+        <div class="form-group"><label>Location / District *</label><input id="d_loc" class="form-control" placeholder="e.g. Dharwad"/></div>
+        <div class="form-group"><label>Years of Experience</label><input id="d_exp" type="number" class="form-control" placeholder="e.g. 8" min="0" max="60"/></div>
+        <div class="form-group"><label>Availability</label>
+          <select id="d_status" class="form-control"><option value="Available">Available</option><option value="Busy">Busy</option></select>
+        </div>
+        <div class="form-group"><label>Telemedicine</label>
+          <select id="d_tele" class="form-control"><option value="yes">Yes — Tele-enabled</option><option value="no">No — In-Person only</option></select>
+        </div>
+        <div class="form-group"><label>Gender (for icon)</label>
+          <select id="d_gender" class="form-control"><option value="male">Male</option><option value="female">Female</option></select>
+        </div>
+        <div class="form-group"><label>Contact Number</label><input id="d_contact" type="tel" class="form-control" placeholder="e.g. 9876543210"/></div>
+      </div>
+      <div id="modalErr" style="display:none;margin-top:12px;" class="notice-pill">Please fill in Name, Specialization and Location.</div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn-teal" style="flex:1" onclick="saveDoctor()">Save Doctor</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let viewMode='card';
+let filtered=[];
+
+function getFiltered(){
+  const spec  =document.getElementById('specFilter').value;
+  const avail =document.getElementById('availFilter').value;
+  const tele  =document.getElementById('teleFilter').value;
+  const search=document.getElementById('searchInput').value.toLowerCase();
+  return Store.getDoctors().filter(d=>
+    (!spec  ||d.spec===spec)&&
+    (!avail ||d.status===avail)&&
+    (!tele  ||(tele==='yes'?d.tele:!d.tele))&&
+    (!search||d.name.toLowerCase().includes(search)||d.loc.toLowerCase().includes(search))
+  );
+}
+
+function updateStats(){
+  const all=Store.getDoctors();
+  document.getElementById('stTotal').textContent=all.length;
+  document.getElementById('stAvail').textContent=all.filter(d=>d.status==='Available').length;
+  document.getElementById('stTele').textContent=all.filter(d=>d.tele).length;
+  document.getElementById('stSpecs').textContent=new Set(all.map(d=>d.spec)).size;
+}
+
+function applyFilters(){filtered=getFiltered();renderCards();renderTable();updateStats();}
+
+function renderCards(){
+  const container=document.getElementById('cardView');
+  if(filtered.length===0){
+    container.innerHTML='';
+    const all=Store.getDoctors();
+    if(all.length===0){
+      container.style.display='block';
+      container.innerHTML=`<div class="empty-state"><div class="big">🩺</div>No doctors added yet.<br><button class="btn-teal" style="margin-top:14px" onclick="openModal()">Add First Doctor</button></div>`;
+    } else {
+      container.style.display='grid';
+      container.innerHTML=`<div class="empty-state" style="grid-column:1/-1"><div class="big">🔍</div>No doctors match your filters.</div>`;
+    }
+    document.getElementById('docCount').textContent=0;
+    return;
+  }
+  container.style.display='grid';
+  container.innerHTML=filtered.map(d=>{
+    const sc=d.status==='Available'?'badge-green':'badge-orange';
+    const dc=d.status==='Available'?'#22c55e':'#f97316';
+    return`<div class="doc-card">
+      <div class="doc-card-top">
+        <div class="doc-avatar">${d.emoji}</div>
+        <div><div class="doc-name">${d.name}</div><div class="doc-spec">${d.spec}</div></div>
+      </div>
+      <div class="doc-detail">📍 ${d.loc}</div>
+      <div class="doc-detail">🎓 ${d.exp} experience</div>
+      <div class="doc-meta">
+        <span class="badge ${sc}"><span style="width:6px;height:6px;background:${dc};border-radius:50%;display:inline-block;margin-right:4px"></span>${d.status}</span>
+        ${d.tele?'<span class="badge badge-blue">📡 Telemedicine</span>':'<span class="badge badge-gray">🏥 In-Person</span>'}
+      </div>
+      <div class="doc-footer">
+        <code style="font-size:.72rem;background:#f1f5f9;padding:2px 7px;border-radius:5px">${d.id}</code>
+        <div style="display:flex;gap:6px">
+          <a href="allocate.html" class="action-btn">Allocate</a>
+          <button class="action-btn danger" onclick="removeDoctor('${d.id}')">✕</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+  document.getElementById('docCount').textContent=filtered.length;
+}
+
+function renderTable(){
+  const tbody=document.getElementById('docTableBody');
+  if(filtered.length===0){tbody.innerHTML=`<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--muted)">No doctors found.</td></tr>`;return;}
+  tbody.innerHTML=filtered.map(d=>{
+    const sc=d.status==='Available'?'badge-green':'badge-orange';
+    return`<tr>
+      <td><code style="font-size:.76rem;background:#f1f5f9;padding:2px 7px;border-radius:5px">${d.id}</code></td>
+      <td><strong>${d.emoji} ${d.name}</strong></td>
+      <td><span class="badge badge-blue">${d.spec}</span></td>
+      <td>${d.loc}</td>
+      <td>${d.exp}</td>
+      <td>${d.tele?'<span class="badge badge-green">✓ Yes</span>':'<span class="badge badge-gray">No</span>'}</td>
+      <td><span class="badge ${sc}">${d.status}</span></td>
+      <td style="display:flex;gap:6px"><a href="allocate.html" class="action-btn">Allocate</a><button class="action-btn danger" onclick="removeDoctor('${d.id}')">Remove</button></td>
+    </tr>`;
+  }).join('');
+}
+
+function setView(mode){
+  viewMode=mode;
+  document.getElementById('cardView').style.display =mode==='card' ?'grid':'none';
+  document.getElementById('tableView').style.display=mode==='table'?'block':'none';
+  document.getElementById('cardViewBtn').classList.toggle('active',mode==='card');
+  document.getElementById('tableViewBtn').classList.toggle('active',mode==='table');
+}
+
+function removeDoctor(id){
+  if(confirm('Remove this doctor?')){Store.deleteDoctor(id);applyFilters();}
+}
+
+// Modal
+function openModal(){
+  document.getElementById('modalBackdrop').classList.add('open');
+  document.getElementById('modalErr').style.display='none';
+  document.getElementById('d_name').focus();
+}
+function closeModal(){
+  document.getElementById('modalBackdrop').classList.remove('open');
+  ['d_name','d_loc','d_exp','d_contact'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('d_spec').value='';
+  document.getElementById('d_status').value='Available';
+  document.getElementById('d_tele').value='yes';
+  document.getElementById('d_gender').value='male';
+}
+function backdropClick(e){if(e.target===document.getElementById('modalBackdrop'))closeModal();}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();});
+
+function saveDoctor(){
+  const name=document.getElementById('d_name').value.trim();
+  const spec=document.getElementById('d_spec').value;
+  const loc =document.getElementById('d_loc').value.trim();
+  if(!name||!spec||!loc){document.getElementById('modalErr').style.display='flex';return;}
+  Store.addDoctor({
+    name, spec, loc,
+    exp:document.getElementById('d_exp').value,
+    status:document.getElementById('d_status').value,
+    tele:document.getElementById('d_tele').value,
+    gender:document.getElementById('d_gender').value,
+    contact:document.getElementById('d_contact').value.trim(),
+  });
+  closeModal();
+  applyFilters();
+}
+
+applyFilters();
+</script>
+</body>
+</html>
