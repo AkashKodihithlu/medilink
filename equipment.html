@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>MediPredict — Equipment Tracker</title>
+<link rel="stylesheet" href="shared.css"/>
+<script src="store.js"></script>
+<style>
+  .top-bar{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:12px;}
+  .search-bar{display:flex;align-items:center;gap:8px;background:#fff;border:1.5px solid var(--border);border-radius:10px;padding:8px 14px;min-width:200px;}
+  .search-bar input{border:none;outline:none;font-family:inherit;font-size:.88rem;color:var(--navy);width:100%;}
+  .filter-select{padding:7px 12px;border:1.5px solid var(--border);border-radius:8px;font-family:inherit;font-size:.82rem;color:var(--slate);outline:none;cursor:pointer;background:#fff;}
+  .filter-select:focus{border-color:var(--teal);}
+  
+  .action-btn{background:none;border:1.5px solid var(--border);border-radius:6px;padding:4px 10px;font-size:.78rem;font-weight:600;cursor:pointer;transition:all .15s;color:var(--slate);}
+  .action-btn:hover{border-color:var(--teal);color:var(--teal);}
+  .action-btn.danger:hover{border-color:var(--red);color:var(--red);}
+  
+  .cat-pill{font-size:.72rem;padding:2px 8px;border-radius:4px;font-weight:600;display:inline-block;margin-top:4px;}
+  .cat-diagnostic{background:#e0f2fe;color:#0284c7;}
+  .cat-life{background:#fee2e2;color:#dc2626;}
+  .cat-mobility{background:#dcfce7;color:#166534;}
+  .cat-imaging{background:#f3e8ff;color:#7e22ce;}
+  .cat-emergency{background:#ffedd5;color:#c2410c;}
+  .cat-general{background:#f1f5f9;color:#475569;}
+
+  .table-card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);border:1px solid var(--border);overflow:hidden;}
+  .table-card-header{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;}
+  .count-chip{background:var(--teal-light);color:var(--teal-dark);border-radius:50px;padding:2px 10px;font-size:.75rem;font-weight:700;}
+  .empty-state{text-align:center;padding:52px 20px;color:var(--muted);font-size:.86rem;}
+  .empty-state .big{font-size:2.5rem;margin-bottom:12px;}
+
+  .modal-backdrop{display:none;position:fixed;inset:0;background:rgba(15,23,42,.45);backdrop-filter:blur(4px);z-index:200;align-items:center;justify-content:center;padding:24px;}
+  .modal-backdrop.open{display:flex;}
+  .modal{background:#fff;border-radius:20px;box-shadow:0 24px 64px rgba(0,0,0,.18);width:100%;max-width:540px;max-height:90vh;overflow-y:auto;animation:modalIn .22s ease;}
+  @keyframes modalIn{from{opacity:0;transform:translateY(16px) scale(.97)}to{opacity:1;transform:none}}
+  .modal-header{padding:22px 26px 0;display:flex;justify-content:space-between;align-items:center;}
+  .modal-header h2{font-size:1.05rem;font-weight:800;color:var(--navy);}
+  .modal-close{width:30px;height:30px;border-radius:50%;border:1.5px solid var(--border);background:none;cursor:pointer;font-size:.9rem;color:var(--muted);display:flex;align-items:center;justify-content:center;transition:all .15s;}
+  .modal-close:hover{background:#f1f5f9;color:var(--navy);}
+  .modal-body{padding:18px 26px 4px;}
+  .modal-footer{padding:12px 26px 22px;display:flex;gap:10px;}
+  
+  .drawer-backdrop{display:none;position:fixed;inset:0;background:rgba(15,23,42,.45);backdrop-filter:blur(4px);z-index:300;}
+  .drawer-backdrop.open{display:block;}
+  .drawer{position:fixed;top:0;right:-480px;width:100%;max-width:440px;height:100vh;background:#fff;box-shadow:-4px 0 24px rgba(0,0,0,.1);z-index:310;transition:right .3s ease;display:flex;flex-direction:column;}
+  .drawer.open{right:0;}
+  .drawer-header{padding:20px 24px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;background:#fff;z-index:10;}
+  .drawer-title{font-size:1.1rem;font-weight:800;color:var(--navy);}
+  .drawer-body{padding:24px;flex:1;overflow-y:auto;}
+  .kv-row{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);}
+  .kv-key{color:var(--muted);font-size:.85rem;}
+  .kv-val{color:var(--navy);font-weight:600;font-size:.85rem;text-align:right;}
+  .fac-card{background:#f8fafc;border:1px solid var(--border);border-radius:10px;padding:16px;margin:20px 0;}
+  .timeline{border-left:2px solid var(--teal-light);margin-left:10px;padding-left:20px;margin-top:16px;}
+  .tl-item{position:relative;margin-bottom:16px;}
+  .tl-dot{position:absolute;left:-25.5px;width:11px;height:11px;border-radius:50%;background:var(--teal);top:3px;}
+  .tl-text{font-size:.85rem;color:var(--navy);font-weight:600;}
+  .tl-date{font-size:.75rem;color:var(--muted);margin-top:2px;}
+</style>
+</head>
+<body>
+
+<nav class="navbar">
+  <a href="index.html" class="nav-logo"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg><span>Medi</span>link</a>
+  <div class="nav-links">
+    <a href="index.html" class="nav-link">Dashboard</a>
+    <a href="patients.html" class="nav-link">Patients</a>
+    <a href="doctors.html" class="nav-link">Doctors</a>
+    <a href="allocate.html" class="nav-link">Allocator</a>
+    <a href="equipment.html" class="nav-link active">Equipment</a>
+    <a href="telemedicine.html" class="nav-link">Telemedicine</a>
+    <a href="coverage.html" class="nav-link">Coverage Gaps</a>
+  </div>
+  <div class="nav-actions"><a href="login.html" class="btn-outline">Log In</a><a href="signup.html" class="btn-primary">Register</a></div>
+</nav>
+
+<div class="page-wrapper">
+  <div class="page-header" style="display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:12px;">
+    <div><h1>Equipment Tracker</h1><p>Monitor and manage medical equipment across all rural facilities.</p></div>
+    <button class="btn-primary" onclick="openModal()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Add Equipment</button>
+  </div>
+
+  <div class="stats-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:20px;">
+    <div class="stat-card"><div class="stat-label">Total Equipment</div><div class="stat-value" id="stEqTotal">0</div><div class="stat-sub">across all facilities</div></div>
+    <div class="stat-card"><div class="stat-label">Available</div><div class="stat-value" id="stEqAvail" style="color:var(--green)">0</div></div>
+    <div class="stat-card"><div class="stat-label">In Use</div><div class="stat-value" id="stEqInUse" style="color:var(--orange)">0</div></div>
+    <div class="stat-card"><div class="stat-label">Needs Maintenance</div><div class="stat-value" id="stEqMaint" style="color:var(--red)">0</div></div>
+  </div>
+
+  <div class="top-bar">
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+      <select class="filter-select" id="catFilter" onchange="applyFilters()">
+        <option value="">All Categories</option>
+        <option>Diagnostic</option><option>Life Support</option><option>Mobility</option>
+        <option>Imaging</option><option>Emergency</option><option>General</option>
+      </select>
+      <select class="filter-select" id="statFilter" onchange="applyFilters()">
+        <option value="">All Statuses</option>
+        <option>Available</option><option>In Use</option><option>Maintenance</option><option>Transferred</option>
+      </select>
+      <select class="filter-select" id="facFilter" onchange="applyFilters()"><option value="">All Facilities</option></select>
+    </div>
+    <div class="search-bar">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2.2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input id="searchInput" placeholder="Search equipment or facility…" oninput="applyFilters()"/>
+    </div>
+  </div>
+
+  <div class="table-card">
+    <div class="table-card-header">
+      <div style="display:flex;align-items:center;gap:10px;"><h2>Equipment List</h2><span class="count-chip" id="eqCount">0</span></div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>ID</th><th>Name & Category</th><th>Facility</th><th>Status</th><th>Last Updated</th><th>Actions</th></tr></thead>
+        <tbody id="eqTableBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Add Modal -->
+<div class="modal-backdrop" id="addModal" onclick="backdropClick(event, 'addModal')">
+  <div class="modal">
+    <div class="modal-header"><h2>➕ Add New Equipment</h2><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group"><label>Equipment Name *</label><input id="e_name" class="form-control" placeholder="e.g. Portable ECG Monitor"/></div>
+        <div class="form-group"><label>Category *</label>
+          <select id="e_cat" class="form-control"><option value="">Select…</option>
+            <option>Diagnostic</option><option>Life Support</option><option>Mobility</option>
+            <option>Imaging</option><option>Emergency</option><option>General</option>
+          </select>
+        </div>
+        <div class="form-group"><label>Facility Name *</label><input id="e_facName" class="form-control" placeholder="e.g. PHC Hunsur"/></div>
+        <div class="form-group"><label>Facility Location</label><input id="e_facLoc" class="form-control" placeholder="e.g. Hunsur, Mysuru Dist."/></div>
+        <div class="form-group"><label>Serial Number</label><input id="e_serial" class="form-control" placeholder="e.g. SN-2024-001"/></div>
+        <div class="form-group"><label>Status</label>
+          <select id="e_status" class="form-control"><option>Available</option><option>In Use</option><option>Maintenance</option></select>
+        </div>
+        <div class="form-group"><label>Purchase Date</label><input type="date" id="e_date" class="form-control"/></div>
+      </div>
+      <div id="addErr" style="display:none;margin-top:12px;" class="notice-pill">Please fill in Name, Category and Facility Name.</div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn-teal" style="flex:1" onclick="saveEquipment()">Save Equipment</button>
+    </div>
+  </div>
+</div>
+
+<!-- Transfer Modal -->
+<div class="modal-backdrop" id="transModal" onclick="backdropClick(event, 'transModal')">
+  <div class="modal">
+    <div class="modal-header"><h2>🚚 Transfer Request</h2><button class="modal-close" onclick="closeTransfer()">✕</button></div>
+    <div class="modal-body">
+      <div id="transItem" style="font-weight:600;color:var(--navy);margin-bottom:14px;background:#f8fafc;padding:12px;border-radius:8px;border:1px solid var(--border);"></div>
+      <div class="form-grid">
+        <div class="form-group"><label>Destination Facility *</label><input id="t_dest" class="form-control" placeholder="e.g. District Hospital"/></div>
+        <div class="form-group"><label>Destination Location</label><input id="t_loc" class="form-control" placeholder="e.g. Central Hub"/></div>
+        <div class="form-group" style="grid-column:1/-1"><label>Reason for Transfer *</label><textarea id="t_reason" class="form-control" rows="2" placeholder="e.g. Requires calibration"></textarea></div>
+        <div class="form-group" style="grid-column:1/-1"><label>Urgency Level</label>
+          <div style="display:flex;gap:16px;margin-top:8px;">
+            <label style="display:flex;align-items:center;gap:6px;"><input type="radio" name="t_urg" value="High"/> High</label>
+            <label style="display:flex;align-items:center;gap:6px;"><input type="radio" name="t_urg" value="Medium" checked/> Medium</label>
+            <label style="display:flex;align-items:center;gap:6px;"><input type="radio" name="t_urg" value="Low"/> Low</label>
+          </div>
+        </div>
+        <div class="form-group"><label>Date Needed By</label><input type="date" id="t_date" class="form-control"/></div>
+      </div>
+      <div id="transErr" style="display:none;margin-top:12px;" class="notice-pill">Please provide Destination and Reason.</div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-ghost" onclick="closeTransfer()">Cancel</button>
+      <button class="btn-teal" style="flex:1" onclick="submitTransfer()">Submit Transfer</button>
+    </div>
+  </div>
+</div>
+
+<!-- Drawer -->
+<div class="drawer-backdrop" id="drawerBack" onclick="closeDrawer()"></div>
+<div class="drawer" id="sideDrawer">
+  <div class="drawer-header"><div class="drawer-title" id="dTitle">Details</div><button class="modal-close" onclick="closeDrawer()">✕</button></div>
+  <div class="drawer-body">
+    <div class="section-title">Equipment Info</div>
+    <div id="dKeyVals"></div>
+    <div class="fac-card" id="dFac"></div>
+    <div class="section-title" style="margin-top:24px;">Status History</div>
+    <div class="timeline" id="dTime"></div>
+  </div>
+  <div style="padding:16px 24px;border-top:1px solid var(--border);"><button class="btn-teal" style="width:100%" id="dTransBtn">Transfer Request</button></div>
+</div>
+
+<script>
+let filtered=[];
+let activeTransferId=null;
+
+function getCatClass(cat){
+  if(cat==='Diagnostic')return 'cat-diagnostic';
+  if(cat==='Life Support')return 'cat-life';
+  if(cat==='Mobility')return 'cat-mobility';
+  if(cat==='Imaging')return 'cat-imaging';
+  if(cat==='Emergency')return 'cat-emergency';
+  return 'cat-general';
+}
+function getStatBadge(stat){
+  if(stat==='Available')return 'badge-green';
+  if(stat==='In Use')return 'badge-orange';
+  if(stat==='Maintenance')return 'badge-red';
+  return 'badge-gray';
+}
+function tFormat(iso){
+  if(!iso) return '—';
+  const d=new Date(iso);
+  return d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+}
+
+function renderStats(){
+  const all=Store.getEquipment();
+  document.getElementById('stEqTotal').textContent=all.length;
+  document.getElementById('stEqAvail').textContent=all.filter(e=>e.status==='Available').length;
+  document.getElementById('stEqInUse').textContent=all.filter(e=>e.status==='In Use').length;
+  document.getElementById('stEqMaint').textContent=all.filter(e=>e.status==='Maintenance').length;
+}
+
+function populateFacFilter(){
+  const all=Store.getEquipment();
+  const facs=[...new Set(all.map(e=>e.facilityName))].filter(Boolean).sort();
+  const sel=document.getElementById('facFilter');
+  sel.innerHTML='<option value="">All Facilities</option>'+facs.map(f=>`<option value="${f}">${f}</option>`).join('');
+}
+
+function getFiltered(){
+  const cat=document.getElementById('catFilter').value;
+  const stat=document.getElementById('statFilter').value;
+  const fac=document.getElementById('facFilter').value;
+  const q=document.getElementById('searchInput').value.toLowerCase();
+  filtered=Store.getEquipment().filter(e=>
+    (!cat||e.category===cat)&&
+    (!stat||e.status===stat)&&
+    (!fac||e.facilityName===fac)&&
+    (!q||e.name.toLowerCase().includes(q)||e.facilityName.toLowerCase().includes(q))
+  );
+}
+
+function renderTable(){
+  const tbody=document.getElementById('eqTableBody');
+  document.getElementById('eqCount').textContent=filtered.length;
+  if(filtered.length===0){
+    tbody.innerHTML=`<tr><td colspan="6"><div class="empty-state"><div class="big">🛠️</div>No equipment found. Add some above.</div></td></tr>`;
+    return;
+  }
+  tbody.innerHTML=filtered.map(e=>`
+    <tr>
+      <td><code style="font-size:.76rem;background:#f1f5f9;padding:2px 7px;border-radius:5px">${e.id}</code></td>
+      <td><strong>${e.name}</strong><br><span class="cat-pill ${getCatClass(e.category)}">${e.category}</span></td>
+      <td><strong>${e.facilityName}</strong><br><span style="font-size:.75rem;color:var(--muted)">${e.facilityLocation||'—'}</span></td>
+      <td><span class="badge ${getStatBadge(e.status)}">${e.status}</span></td>
+      <td style="font-size:.75rem;color:var(--muted)">${tFormat(e.updatedAt)}</td>
+      <td style="display:flex;gap:6px;">
+        <button class="action-btn" onclick="openDrawer('${e.id}')">Details</button>
+        ${e.status==='Available'?`<button class="action-btn" onclick="toggleStatus('${e.id}','In Use')">Mark In Use</button>`:''}
+        ${e.status==='In Use'?`<button class="action-btn" onclick="toggleStatus('${e.id}','Available')">Mark Available</button>`:''}
+        <button class="action-btn danger" onclick="removeEquipment('${e.id}')">Remove</button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function applyFilters(){getFiltered();renderTable();}
+
+function openModal(){
+  document.getElementById('addModal').classList.add('open');
+  document.getElementById('addErr').style.display='none';
+  document.getElementById('e_name').focus();
+}
+function closeModal(){
+  document.getElementById('addModal').classList.remove('open');
+  ['e_name','e_cat','e_facName','e_facLoc','e_serial','e_date'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('e_status').value='Available';
+}
+function backdropClick(e,id){if(e.target===document.getElementById(id)){id==='addModal'?closeModal():closeTransfer();}}
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal();closeDrawer();closeTransfer();}});
+
+function saveEquipment(){
+  const name=document.getElementById('e_name').value.trim();
+  const cat =document.getElementById('e_cat').value;
+  const facName=document.getElementById('e_facName').value.trim();
+  if(!name||!cat||!facName){document.getElementById('addErr').style.display='block';return;}
+  Store.addEquipment({
+    name, category:cat, facilityName:facName,
+    facilityLocation:document.getElementById('e_facLoc').value.trim(),
+    serialNumber:document.getElementById('e_serial').value.trim(),
+    status:document.getElementById('e_status').value,
+    purchaseDate:document.getElementById('e_date').value
+  });
+  closeModal(); populateFacFilter(); renderStats(); applyFilters();
+}
+
+function removeEquipment(id){
+  if(confirm('Remove this equipment?')){Store.deleteEquipment(id);populateFacFilter();renderStats();applyFilters();}
+}
+
+function toggleStatus(id, stat){
+  Store.updateEquipmentStatus(id, stat);
+  renderStats(); applyFilters();
+}
+
+function openDrawer(id){
+  const e=Store.getEquipment().find(x=>x.id===id);
+  if(!e)return;
+  document.getElementById('dTitle').textContent=e.name;
+  document.getElementById('dKeyVals').innerHTML=`
+    <div class="kv-row"><span class="kv-key">Equipment ID</span><span class="kv-val"><code style="background:#f1f5f9;padding:2px 6px;border-radius:4px">${e.id}</code></span></div>
+    <div class="kv-row"><span class="kv-key">Category</span><span class="kv-val"><span class="cat-pill ${getCatClass(e.category)}" style="margin:0">${e.category}</span></span></div>
+    <div class="kv-row"><span class="kv-key">Serial Number</span><span class="kv-val">${e.serialNumber||'N/A'}</span></div>
+    <div class="kv-row"><span class="kv-key">Status</span><span class="kv-val"><span class="badge ${getStatBadge(e.status)}" style="margin:0">${e.status}</span></span></div>
+    <div class="kv-row"><span class="kv-key">Purchase Date</span><span class="kv-val">${e.purchaseDate?tFormat(e.purchaseDate):'N/A'}</span></div>
+    <div class="kv-row"><span class="kv-key">Last Updated</span><span class="kv-val">${tFormat(e.updatedAt)}</span></div>
+  `;
+  document.getElementById('dFac').innerHTML=`
+    <div style="font-size:.76rem;color:var(--teal-dark);text-transform:uppercase;font-weight:700;margin-bottom:6px">Current Facility</div>
+    <div style="font-weight:800;color:var(--navy);font-size:1.05rem">${e.facilityName}</div>
+    <div style="color:var(--slate);font-size:.85rem;margin-top:2px">${e.facilityLocation||'No location specifics'}</div>
+  `;
+  // timeline
+  let tl=`<div class="tl-item"><div class="tl-dot"></div><div class="tl-text">Added to system</div><div class="tl-date">${tFormat(e.createdAt)}</div></div>`;
+  if(e.createdAt!==e.updatedAt) tl=`<div class="tl-item"><div class="tl-dot"></div><div class="tl-text">Status updated to ${e.status}</div><div class="tl-date">${tFormat(e.updatedAt)}</div></div>`+tl;
+  document.getElementById('dTime').innerHTML=tl;
+
+  const tb=document.getElementById('dTransBtn');
+  tb.onclick=()=>openTransfer(e.id);
+  
+  document.getElementById('drawerBack').classList.add('open');
+  document.getElementById('sideDrawer').classList.add('open');
+}
+function closeDrawer(){
+  document.getElementById('drawerBack').classList.remove('open');
+  document.getElementById('sideDrawer').classList.remove('open');
+}
+
+function openTransfer(id){
+  closeDrawer();
+  const e=Store.getEquipment().find(x=>x.id===id);
+  if(!e)return;
+  activeTransferId=id;
+  document.getElementById('transItem').textContent=`Transferring: ${e.name} (${e.id})`;
+  document.getElementById('transModal').classList.add('open');
+  document.getElementById('t_dest').focus();
+}
+function closeTransfer(){
+  document.getElementById('transModal').classList.remove('open');
+  activeTransferId=null;
+  ['t_dest','t_loc','t_reason','t_date'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('transErr').style.display='none';
+}
+function submitTransfer(){
+  const dest=document.getElementById('t_dest').value.trim();
+  const res =document.getElementById('t_reason').value.trim();
+  if(!dest||!res){document.getElementById('transErr').style.display='block';return;}
+  Store.updateEquipmentFacility(activeTransferId, dest, document.getElementById('t_loc').value.trim());
+  Store.updateEquipmentStatus(activeTransferId, 'Transferred');
+  closeTransfer(); populateFacFilter(); renderStats(); applyFilters();
+}
+
+populateFacFilter();
+renderStats();
+applyFilters();
+</script>
+</body>
+</html>

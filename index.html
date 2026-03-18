@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>MediLink — Dashboard</title>
+<link rel="stylesheet" href="shared.css" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="store.js"></script>
+<style>
+  .hero{display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:center;padding:52px 0 40px;}
+  .hero-tag{display:inline-flex;align-items:center;gap:6px;background:var(--teal-light);color:var(--teal-dark);font-size:.78rem;font-weight:700;padding:5px 12px;border-radius:50px;margin-bottom:18px;text-transform:uppercase;letter-spacing:.04em;}
+  .hero h1{font-size:2.6rem;font-weight:800;line-height:1.15;margin-bottom:14px;}
+  .hero h1 span{color:var(--teal);}
+  .hero p{color:var(--muted);font-size:1rem;line-height:1.6;max-width:420px;}
+  .hero-actions{display:flex;gap:12px;margin-top:22px;flex-wrap:wrap;}
+  .analysis-card{background:var(--card);border-radius:18px;box-shadow:var(--shadow-lg);border:1px solid var(--border);overflow:hidden;}
+  .analysis-card-top{border-top:3px solid var(--teal);padding:22px 22px 14px;}
+  .confidence-row{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;}
+  .confidence-label{font-size:.76rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;}
+  .confidence-value{font-size:2.2rem;font-weight:800;color:var(--teal);line-height:1;}
+  .progress-bar{height:5px;background:var(--teal-light);border-radius:99px;overflow:hidden;}
+  .progress-fill{height:100%;background:linear-gradient(90deg,var(--teal),#38bdf8);border-radius:99px;transition:width 1.2s ease;}
+  .metrics-row{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--border);}
+  .metric-cell{background:#fff;padding:16px 18px;}
+  .metric-cell .icon{font-size:1.2rem;margin-bottom:5px;}
+  .metric-cell .name{font-size:.76rem;font-weight:700;color:var(--navy);}
+  .metric-cell .val{font-size:.95rem;font-weight:600;color:var(--slate);margin-top:2px;}
+  .charts-grid{display:grid;grid-template-columns:2fr 1fr;gap:20px;margin-top:4px;}
+  .chart-card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);border:1px solid var(--border);padding:22px;}
+  .chart-card canvas{max-height:220px;}
+  .activity-item{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);}
+  .activity-item:last-child{border-bottom:none;}
+  .activity-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+  .activity-text{flex:1;font-size:.84rem;color:var(--slate);}
+  .activity-text strong{color:var(--navy);}
+  .activity-time{font-size:.74rem;color:var(--muted);white-space:nowrap;}
+  .empty-state{text-align:center;padding:36px 16px;color:var(--muted);font-size:.86rem;}
+  .empty-state .big{font-size:2rem;margin-bottom:8px;}
+  .gap-row{margin-bottom:14px;}
+  .gap-row-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px;}
+  .gap-loc{font-size:.82rem;font-weight:600;color:var(--slate);}
+  @media(max-width:900px){.hero{grid-template-columns:1fr;padding:28px 0;}.charts-grid{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+<nav class="navbar">
+  <a href="index.html" class="nav-logo"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg><span>Medi</span>link</a>
+  <div class="nav-links">
+    <a href="index.html" class="nav-link active">Dashboard</a>
+    <a href="patients.html" class="nav-link">Patients</a>
+    <a href="doctors.html" class="nav-link">Doctors</a>
+    <a href="allocate.html" class="nav-link">Allocator</a>
+    <a href="equipment.html" class="nav-link">Equipment</a>
+    <a href="telemedicine.html" class="nav-link">Telemedicine</a>
+    <a href="coverage.html" class="nav-link">Coverage Gaps</a>
+  </div>
+  <div class="nav-actions">
+    <a href="login.html" class="btn-outline">Log In</a>
+    <a href="signup.html" class="btn-primary">Register</a>
+  </div>
+</nav>
+
+<div class="page-wrapper">
+  <div class="hero">
+    <div>
+      <div class="hero-tag"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>smart allocation system</div>
+      <h1>Rural Healthcare<br><span>Resource Allocator</span></h1>
+      <p>Allocate healthcare resources efficiently across underserved rural regions. Register patients, add doctors, and match them intelligently.</p>
+      <div style="margin-top:16px;"><div class="notice-pill"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>For resource management only · Not a medical diagnosis</div></div>
+      <div class="hero-actions"><a href="allocate.html" class="btn-teal">Start Allocation</a><a href="patients.html" class="btn-ghost">Manage Patients</a></div>
+    </div>
+    <div class="analysis-card">
+      <div class="analysis-card-top">
+        <div class="confidence-row">
+          <div><div class="confidence-label">Allocation Efficiency</div><div class="confidence-value" id="effPct">0%</div></div>
+          <span class="badge badge-gray" id="sysBadge">No Data</span>
+        </div>
+        <div class="progress-bar"><div class="progress-fill" id="effBar" style="width:0%"></div></div>
+      </div>
+      <div class="metrics-row">
+        <div class="metric-cell"><div class="icon">🧑‍⚕️</div><div class="name">Total Patients</div><div class="val" id="hP">0</div></div>
+        <div class="metric-cell"><div class="icon">🩺</div><div class="name">Avail. Doctors</div><div class="val" id="hD">0</div></div>
+        <div class="metric-cell"><div class="icon">⚡</div><div class="name">Critical Cases</div><div class="val" id="hC">0</div></div>
+        <div class="metric-cell"><div class="icon">📡</div><div class="name">Tele-Enabled</div><div class="val" id="hT">0</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="stats-grid">
+    <div class="stat-card"><div class="stat-icon" style="background:#e0f2fe;">🏥</div><div class="stat-label">Total Patients</div><div class="stat-value" id="sP">0</div><div class="stat-sub" id="sPen">0 pending</div></div>
+    <div class="stat-card"><div class="stat-icon" style="background:#dcfce7;">👨‍⚕️</div><div class="stat-label">Available Doctors</div><div class="stat-value" id="sAD">0</div><div class="stat-sub" id="sTD">of 0 total</div></div>
+    <div class="stat-card"><div class="stat-icon" style="background:#fff7ed;">⚡</div><div class="stat-label">Critical Cases</div><div class="stat-value" id="sCrit">0</div><div class="stat-sub">Needs attention</div></div>
+    <div class="stat-card"><div class="stat-icon" style="background:#fef9c3;">✅</div><div class="stat-label">Allocations Made</div><div class="stat-value" id="sAlloc">0</div><div class="stat-sub">Total confirmed</div></div>
+    <div class="stat-card"><div class="stat-icon" style="background:#f3e8ff;">📡</div><div class="stat-label">Tele Doctors</div><div class="stat-value" id="sTele">0</div><div class="stat-sub">For remote consult</div></div>
+  </div>
+
+  <div class="charts-grid">
+    <div class="chart-card">
+      <div class="section-title">Patients vs Doctors by Region</div>
+      <canvas id="barChart" style="display:none"></canvas>
+      <div id="barEmpty" class="empty-state"><div class="big">📊</div>Add patients and doctors to see the regional breakdown.</div>
+    </div>
+    <div class="chart-card">
+      <div class="section-title">Patient Urgency Mix</div>
+      <canvas id="pieChart" style="display:none"></canvas>
+      <div id="pieEmpty" class="empty-state"><div class="big">🥧</div>No patients registered yet.</div>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:20px;">
+    <div class="card">
+      <div class="section-title">Recent Allocations</div>
+      <div id="recentAlloc"></div>
+    </div>
+    <div class="card">
+      <div class="section-title">Coverage Gap Summary</div>
+      <div id="coverageGaps"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+let barInst=null, pieInst=null;
+
+function timeAgo(iso){
+  const m=Math.floor((Date.now()-new Date(iso))/60000);
+  if(m<1) return 'just now'; if(m<60) return m+'m ago';
+  const h=Math.floor(m/60); if(h<24) return h+'h ago';
+  return Math.floor(h/24)+'d ago';
+}
+
+function render(){
+  const stats=Store.getStats(), gaps=Store.getCoverageGaps();
+  const patients=Store.getPatients(), doctors=Store.getDoctors(), allocs=Store.getAllocations().slice(0,5);
+
+  // Efficiency
+  const eff=stats.totalPatients===0?0:Math.min(100,Math.round((stats.totalAllocations/Math.max(stats.totalPatients,1))*100));
+  document.getElementById('effPct').textContent=eff+'%';
+  document.getElementById('effBar').style.width=eff+'%';
+  const b=document.getElementById('sysBadge');
+  if(eff>=70){b.className='badge badge-green';b.textContent='● Optimal';}
+  else if(eff>=30){b.className='badge badge-yellow';b.textContent='● Moderate';}
+  else if(stats.totalPatients>0){b.className='badge badge-orange';b.textContent='● Low';}
+  else{b.className='badge badge-gray';b.textContent='No Data';}
+
+  document.getElementById('hP').textContent=stats.totalPatients;
+  document.getElementById('hD').textContent=stats.availableDoctors;
+  document.getElementById('hC').textContent=stats.criticalPatients;
+  document.getElementById('hT').textContent=stats.teleEnabled;
+  document.getElementById('sP').textContent=stats.totalPatients;
+  document.getElementById('sPen').textContent=stats.pendingPatients+' pending';
+  document.getElementById('sAD').textContent=stats.availableDoctors;
+  document.getElementById('sTD').textContent='of '+stats.totalDoctors+' total';
+  document.getElementById('sCrit').textContent=stats.criticalPatients;
+  document.getElementById('sAlloc').textContent=stats.totalAllocations;
+  document.getElementById('sTele').textContent=stats.teleEnabled;
+
+  // Bar
+  const locMap={};
+  patients.forEach(p=>{locMap[p.location]=locMap[p.location]||{p:0,d:0};locMap[p.location].p++;});
+  doctors.forEach(d=>{locMap[d.loc]=locMap[d.loc]||{p:0,d:0};locMap[d.loc].d++;});
+  const labels=Object.keys(locMap);
+  if(labels.length===0){
+    document.getElementById('barChart').style.display='none';
+    document.getElementById('barEmpty').style.display='block';
+  } else {
+    document.getElementById('barChart').style.display='';
+    document.getElementById('barEmpty').style.display='none';
+    if(barInst) barInst.destroy();
+    barInst=new Chart(document.getElementById('barChart').getContext('2d'),{
+      type:'bar',
+      data:{labels,datasets:[
+        {label:'Patients',data:labels.map(l=>locMap[l].p),backgroundColor:'#0ea5e9',borderRadius:6},
+        {label:'Doctors', data:labels.map(l=>locMap[l].d),backgroundColor:'#bae6fd',borderRadius:6}
+      ]},
+      options:{responsive:true,maintainAspectRatio:true,
+        plugins:{legend:{labels:{font:{family:'Plus Jakarta Sans',size:11},boxWidth:12}}},
+        scales:{x:{grid:{display:false},ticks:{font:{family:'Plus Jakarta Sans',size:10}}},
+                y:{grid:{color:'#f1f5f9'},ticks:{font:{family:'Plus Jakarta Sans',size:10},stepSize:1}}}}
+    });
+  }
+
+  // Pie
+  const uc={Critical:0,High:0,Moderate:0,Low:0};
+  patients.forEach(p=>{if(uc[p.urgency]!==undefined) uc[p.urgency]++;});
+  if(Object.values(uc).every(v=>v===0)){
+    document.getElementById('pieChart').style.display='none';
+    document.getElementById('pieEmpty').style.display='block';
+  } else {
+    document.getElementById('pieChart').style.display='';
+    document.getElementById('pieEmpty').style.display='none';
+    if(pieInst) pieInst.destroy();
+    pieInst=new Chart(document.getElementById('pieChart').getContext('2d'),{
+      type:'doughnut',
+      data:{labels:['Critical','High','Moderate','Low'],
+            datasets:[{data:Object.values(uc),backgroundColor:['#ef4444','#f97316','#eab308','#22c55e'],borderWidth:0}]},
+      options:{responsive:true,maintainAspectRatio:true,cutout:'62%',
+        plugins:{legend:{position:'bottom',labels:{font:{family:'Plus Jakarta Sans',size:11},boxWidth:12,padding:12}}}}
+    });
+  }
+
+  // Recent allocs
+  const ra=document.getElementById('recentAlloc');
+  ra.innerHTML=allocs.length===0
+    ?`<div class="empty-state"><div class="big">🔗</div>No allocations yet. <a href="allocate.html" style="color:var(--teal);font-weight:600;">Start one →</a></div>`
+    :allocs.map(a=>`<div class="activity-item"><div class="activity-dot" style="background:var(--teal)"></div><div class="activity-text"><strong>${a.patientName}</strong> → ${a.doctorName} (${a.doctorSpec})</div><div class="activity-time">${timeAgo(a.confirmedAt)}</div></div>`).join('');
+
+  // Coverage gaps
+  const cg=document.getElementById('coverageGaps');
+  if(gaps.length===0){
+    cg.innerHTML=`<div class="empty-state"><div class="big">🗺️</div>Add patients and doctors to see coverage analysis.</div>`;
+  } else {
+    const colorMap={Critical:['#ef4444','badge-red'],Moderate:['#f97316','badge-orange'],Low:['#eab308','badge-yellow'],Good:['var(--teal)','badge-green']};
+    cg.innerHTML=gaps.slice(0,6).map(g=>{
+      const[clr,bc]=colorMap[g.severity];
+      const pct=g.severity==='Good'?100:Math.max(6,g.coverage);
+      const miss=g.missingSpecs.length?`<div style="font-size:.72rem;color:var(--muted)">Missing: ${g.missingSpecs.join(', ')}</div>`:'';
+      return`<div class="gap-row"><div class="gap-row-top"><div><span class="gap-loc">${g.loc}</span>${miss}</div><span class="badge ${bc}">${g.severity}</span></div><div class="progress-bar"><div class="progress-fill" style="width:${pct}%;background:${clr}"></div></div><div style="font-size:.72rem;color:var(--muted);margin-top:3px">${g.patients} patient${g.patients!==1?'s':''} · ${g.doctors} doctor${g.doctors!==1?'s':''}</div></div>`;
+    }).join('');
+  }
+}
+
+render();
+</script>
+</body>
+</html>

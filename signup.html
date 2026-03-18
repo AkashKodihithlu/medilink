@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>MediPredict — Register</title>
+<link rel="stylesheet" href="shared.css"/>
+<style>
+  .full-layout{display:flex;align-items:stretch;min-height:calc(100vh - 64px);}
+  .left-pane{flex:1;background:linear-gradient(135deg,#e0f2fe 0%,#f0fdf4 100%);display:flex;align-items:center;justify-content:center;}
+  .right-pane{width:540px;display:flex;align-items:center;justify-content:center;padding:40px;overflow-y:auto;}
+  .auth-card{background:var(--card);border-radius:20px;box-shadow:0 8px 40px rgba(14,165,233,.12),0 2px 8px rgba(0,0,0,.07);border:1px solid var(--border);padding:38px;width:100%;max-width:460px;}
+  .auth-logo{display:flex;align-items:center;gap:8px;font-size:1.3rem;font-weight:800;margin-bottom:22px;}
+  .auth-logo span{color:var(--teal);} .auth-logo svg{color:var(--teal);}
+  .auth-title{font-size:1.35rem;font-weight:800;color:var(--navy);margin-bottom:4px;}
+  .auth-sub{color:var(--muted);font-size:.88rem;margin-bottom:20px;}
+  .auth-form{display:flex;flex-direction:column;gap:12px;}
+  .two-col{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .input-wrap{position:relative;}
+  .input-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);pointer-events:none;}
+  .input-wrap input,.input-wrap select{width:100%;padding:11px 14px 11px 38px;border:1.5px solid var(--border);border-radius:10px;font-family:inherit;font-size:.88rem;color:var(--navy);outline:none;transition:border-color .2s;background:#fff;}
+  .input-wrap input:focus,.input-wrap select:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(14,165,233,.1);}
+  .input-wrap input::placeholder{color:#94a3b8;}
+  .auth-submit{padding:12px;background:var(--teal);color:#fff;border:none;border-radius:50px;font-family:inherit;font-size:.95rem;font-weight:700;cursor:pointer;transition:all .2s;margin-top:4px;}
+  .auth-submit:hover{background:var(--teal-dark);box-shadow:0 4px 14px rgba(14,165,233,.35);}
+  .auth-footer{text-align:center;margin-top:18px;font-size:.84rem;color:var(--muted);}
+  .auth-footer a{color:var(--teal);font-weight:600;text-decoration:none;}
+  .terms-row{font-size:.78rem;color:var(--muted);display:flex;align-items:flex-start;gap:7px;}
+  .terms-row input{margin-top:2px;flex-shrink:0;}
+  .terms-row a{color:var(--teal);text-decoration:none;font-weight:600;}
+  .hero-side{display:flex;flex-direction:column;justify-content:center;max-width:340px;padding:40px;}
+  .hero-side h2{font-size:1.7rem;font-weight:800;color:var(--navy);line-height:1.2;}
+  .hero-side h2 span{color:var(--teal);}
+  .step-list{display:flex;flex-direction:column;gap:14px;margin-top:18px;}
+  .step-item{display:flex;align-items:center;gap:12px;}
+  .step-circle{width:30px;height:30px;border-radius:50%;background:var(--teal);color:#fff;font-size:.78rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .step-text{font-size:.87rem;color:var(--slate);}
+  .step-text strong{display:block;font-weight:700;color:var(--navy);}
+  @media(max-width:800px){.left-pane{display:none;}.right-pane{width:100%;}.two-col{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+<nav class="navbar">
+  <a href="index.html" class="nav-logo"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg><span>Medi</span>Predict</a>
+  <div class="nav-links">
+    <a href="index.html" class="nav-link">Dashboard</a>
+    <a href="patients.html" class="nav-link">Patients</a>
+    <a href="doctors.html" class="nav-link">Doctors</a>
+    <a href="allocate.html" class="nav-link">Allocator</a>
+  </div>
+  <div class="nav-actions"><a href="login.html" class="btn-outline">Log In</a><a href="signup.html" class="btn-primary">Register</a></div>
+</nav>
+<div class="full-layout">
+  <div class="left-pane">
+    <div class="hero-side">
+      <div style="font-size:2.5rem;margin-bottom:12px">🌿</div>
+      <h2>Join <span>MediPredict</span><br>Today</h2>
+      <p>Start allocating rural healthcare resources intelligently.</p>
+      <div class="step-list">
+        <div class="step-item"><div class="step-circle">1</div><div class="step-text"><strong>Create your account</strong>Set up credentials & role</div></div>
+        <div class="step-item"><div class="step-circle">2</div><div class="step-text"><strong>Add patients & doctors</strong>Populate your region's data</div></div>
+        <div class="step-item"><div class="step-circle">3</div><div class="step-text"><strong>Start allocating</strong>Match resources intelligently</div></div>
+      </div>
+    </div>
+  </div>
+  <div class="right-pane">
+    <div class="auth-card">
+      <div class="auth-logo"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg><span>Medi</span>Predict</div>
+      <div class="auth-title">Create an account</div>
+      <div class="auth-sub">Fill in the details below to get started</div>
+      <div class="auth-form">
+        <div class="two-col">
+          <div class="form-group"><label>First Name</label><div class="input-wrap"><svg class="input-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><input type="text" placeholder="First name"/></div></div>
+          <div class="form-group"><label>Last Name</label><div class="input-wrap"><svg class="input-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><input type="text" placeholder="Last name"/></div></div>
+        </div>
+        <div class="form-group"><label>Email Address</label><div class="input-wrap"><svg class="input-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg><input type="email" placeholder="you@example.com"/></div></div>
+        <div class="form-group"><label>Role</label><div class="input-wrap"><svg class="input-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg><select><option value="">Select role…</option><option>Healthcare Administrator</option><option>Doctor / Specialist</option><option>Field Coordinator</option><option>Data Analyst</option></select></div></div>
+        <div class="form-group"><label>District / Region</label><div class="input-wrap"><svg class="input-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg><input type="text" placeholder="e.g. Bidar, Karnataka"/></div></div>
+        <div class="two-col">
+          <div class="form-group"><label>Password</label><div class="input-wrap"><svg class="input-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg><input type="password" placeholder="Min. 8 chars"/></div></div>
+          <div class="form-group"><label>Confirm Password</label><div class="input-wrap"><svg class="input-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg><input type="password" placeholder="Repeat password"/></div></div>
+        </div>
+        <label class="terms-row"><input type="checkbox"/>I agree to the <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>.</label>
+        <button class="auth-submit" onclick="window.location='index.html'">Create Account →</button>
+      </div>
+      <div class="auth-footer">Already have an account? <a href="login.html">Log in here</a></div>
+    </div>
+  </div>
+</div>
+</body>
+</html>
