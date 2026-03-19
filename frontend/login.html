@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<title>MediPredict — Log In</title>
+<title>MediLink — Log In</title>
 <link rel="stylesheet" href="shared.css"/>
 <style>
   .full-layout{display:flex;align-items:center;justify-content:center;min-height:calc(100vh - 64px);padding:40px 24px;}
@@ -68,12 +68,15 @@
 </head>
 <body>
 <nav class="navbar">
-  <a href="dashboard.html" class="nav-logo"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg><span>Medi</span>Predict</a>
+  <a href="index.html" class="nav-logo"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg><span>Medi</span>Link</a>
   <div class="nav-links">
     <a href="dashboard.html" class="nav-link">Dashboard</a>
     <a href="patients.html" class="nav-link">Patients</a>
     <a href="doctors.html" class="nav-link">Doctors</a>
     <a href="allocate.html" class="nav-link">Allocator</a>
+    <a href="equipment.html" class="nav-link">Equipment</a>
+    <a href="telemedicine.html" class="nav-link">Telemedicine</a>
+    <a href="coverage.html" class="nav-link">Coverage Gaps</a>
   </div>
   <div class="nav-actions"><a href="login.html" class="btn-outline">Log In</a><a href="signup.html" class="btn-primary">Register</a></div>
 </nav>
@@ -83,7 +86,7 @@
     <div class="auth-card" id="authCard">
       <div class="auth-logo">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-        <span>Medi</span>Predict
+        <span>Medi</span>Link
       </div>
       <div class="auth-title">Log in to your account</div>
       <div class="auth-sub">Enter your credentials to continue</div>
@@ -164,33 +167,50 @@ function setLoading(on) {
   text.textContent = on ? 'Logging in…' : 'Log In →';
 }
 
-function submitLogin() {
-  const email = document.getElementById('loginEmail').value.trim();
-  const pwd   = document.getElementById('loginPwd').value;
-  const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+async function submitLogin() {
+    const email = document.getElementById('loginEmail').value.trim();
+    const pwd   = document.getElementById('loginPwd').value;
+    const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-  // Mark invalid fields
-  document.getElementById('loginEmail').classList.toggle('invalid', !email || !emailRe.test(email));
-  document.getElementById('loginPwd').classList.toggle('invalid', !pwd || pwd.length < 6);
+    document.getElementById('loginEmail').classList.toggle('invalid', !email || !emailRe.test(email));
+    document.getElementById('loginPwd').classList.toggle('invalid', !pwd || pwd.length < 6);
 
-  if (!email)                  { showErr('Please enter your email address.'); return; }
-  if (!emailRe.test(email))    { showErr('Please enter a valid email address.'); return; }
-  if (!pwd)                    { showErr('Please enter your password.'); return; }
-  if (pwd.length < 6)          { showErr('Password must be at least 6 characters.'); return; }
+    if (!email)               { showErr('Please enter your email address.'); return; }
+    if (!emailRe.test(email)) { showErr('Please enter a valid email address.'); return; }
+    if (!pwd)                 { showErr('Please enter your password.'); return; }
 
-  hideErr();
-  setLoading(true);
-  // Simulate a brief async call before redirecting
-  setTimeout(() => { window.location = 'dashboard.html'; }, 800);
-}
-
-// Clear errors + invalid state on input
-['loginEmail','loginPwd'].forEach(id => {
-  document.getElementById(id).addEventListener('input', () => {
-    document.getElementById(id).classList.remove('invalid');
     hideErr();
-  });
-});
+    setLoading(true);
+
+    try {
+        const res  = await fetch('http://localhost:5000/api/login', {
+            method:      'POST',
+            headers:     { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body:        JSON.stringify({ email, password: pwd })
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+            showErr(data.error || 'Login failed. Please try again.');
+            setLoading(false);
+            return;
+        }
+
+        // Save basic info to localStorage for navbar display
+        localStorage.setItem('mp_user', JSON.stringify({
+            name:  data.name,
+            email: data.email,
+            role:  data.role
+        }));
+
+        window.location = 'dashboard.html';
+
+    } catch (err) {
+        showErr('Cannot connect to server. Make sure Flask is running.');
+        setLoading(false);
+    }
+}
 
 // Enter key submits
 document.addEventListener('keydown', e => {

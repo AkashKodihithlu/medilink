@@ -1,4 +1,4 @@
-// ── MediPredict Shared Data Store ──
+// ── MediLink Shared Data Store ──
 // All pages import this. Everything persists in localStorage.
 
 const Store = (() => {

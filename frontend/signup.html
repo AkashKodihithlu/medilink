@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<title>MediPredict — Register</title>
+<title>MediLink — Register</title>
 <link rel="stylesheet" href="shared.css"/>
 <style>
   .full-layout{display:flex;align-items:center;justify-content:center;min-height:calc(100vh - 64px);padding:40px 24px;}
@@ -82,12 +82,15 @@
 </head>
 <body>
 <nav class="navbar">
-  <a href="index.html" class="nav-logo"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg><span>Medi</span>Predict</a>
+  <a href="index.html" class="nav-logo"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg><span>Medi</span>Link</a>
   <div class="nav-links">
-    <a href="index.html" class="nav-link">Dashboard</a>
+    <a href="dashboard.html" class="nav-link">Dashboard</a>
     <a href="patients.html" class="nav-link">Patients</a>
     <a href="doctors.html" class="nav-link">Doctors</a>
     <a href="allocate.html" class="nav-link">Allocator</a>
+    <a href="equipment.html" class="nav-link">Equipment</a>
+    <a href="telemedicine.html" class="nav-link">Telemedicine</a>
+    <a href="coverage.html" class="nav-link">Coverage Gaps</a>
   </div>
   <div class="nav-actions"><a href="login.html" class="btn-outline">Log In</a><a href="signup.html" class="btn-primary">Register</a></div>
 </nav>
@@ -95,7 +98,7 @@
 <div class="full-layout">
   <div class="right-pane">
     <div class="auth-card" id="authCard">
-      <div class="auth-logo"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg><span>Medi</span>Predict</div>
+      <div class="auth-logo"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg><span>Medi</span>Link</div>
       <div class="auth-title">Create an account</div>
       <div class="auth-sub">Fill in the details below to get started</div>
 
@@ -284,7 +287,7 @@ function setLoading(on) {
 
 function markInvalid(id) { document.getElementById(id).classList.add('invalid'); }
 
-function submitForm() {
+async function submitForm() {
   const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   const first = document.getElementById('firstName').value.trim();
   const last  = document.getElementById('lastName').value.trim();
@@ -307,7 +310,30 @@ function submitForm() {
   if (!document.getElementById('termsCheck').checked) { showErr('Please agree to the Terms of Service.'); return; }
 
   setLoading(true);
-  setTimeout(() => { window.location = 'index.html'; }, 900);
+
+  try {
+    const res = await fetch('http://localhost:5000/api/signup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ firstName: first, lastName: last, email, password: p1, role, district: document.getElementById('signupRegion').value.trim() })
+    });
+    
+    const data = await res.json();
+    
+    if (!res.ok) {
+      showErr(data.error || 'Signup failed. Please try again.');
+      setLoading(false);
+      return;
+    }
+
+    localStorage.setItem('mp_user', JSON.stringify({ name: data.name, email }));
+    window.location = 'dashboard.html';
+
+  } catch (err) {
+    showErr('Cannot connect to server. Make sure the Node server is running.');
+    setLoading(false);
+  }
 }
 
 // Clear invalid on input
@@ -317,7 +343,6 @@ function submitForm() {
     hideErr();
   });
 });
-
 // Enter key submits
 document.addEventListener('keydown', e => { if (e.key === 'Enter') submitForm(); });
 </script>

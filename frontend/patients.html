@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>MediPredict — Patients</title>
+<title>MediLink — Patients</title>
 <link rel="stylesheet" href="shared.css" />
 <script src="store.js"></script>
 <style>
@@ -27,7 +27,7 @@
 </head>
 <body>
 <nav class="navbar">
-  <a href="dashboard.html" class="nav-logo"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg><span>Medi</span>Predict</a>
+  <a href="index.html" class="nav-logo"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg><span>Medi</span>Link</a>
   <div class="nav-links">
     <a href="dashboard.html" class="nav-link">Dashboard</a>
     <a href="patients.html" class="nav-link active">Patients</a>
@@ -37,7 +37,7 @@
     <a href="telemedicine.html" class="nav-link">Telemedicine</a>
     <a href="coverage.html" class="nav-link">Coverage Gaps</a>
   </div>
-  <div class="nav-actions"></div>
+  <div class="nav-actions" id="navActions"></div>
 </nav>
 
 <div class="page-wrapper">
@@ -120,6 +120,16 @@
 </div>
 
 <script>
+/* Auth guard */
+(function(){
+  const u = localStorage.getItem('mp_user');
+  if(!u){ window.location = 'login.html'; return; }
+  const user = JSON.parse(u);
+  document.getElementById('navActions').innerHTML =
+    `<span style="font-size:.85rem;font-weight:600;color:var(--navy)">${user.name}</span>
+     <button class="btn-outline" onclick="localStorage.removeItem('mp_user');window.location='login.html'">Log Out</button>`;
+})();
+
 const urgencyBadge={Critical:'badge-red',High:'badge-orange',Moderate:'badge-yellow',Low:'badge-green'};
 const urgencyDot  ={Critical:'#ef4444',High:'#f97316',Moderate:'#eab308',Low:'#22c55e'};
 

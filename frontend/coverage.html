@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>MediLink — Coverage Gaps</title>
+<link rel="stylesheet" href="shared.css"/>
+<script src="store.js"></script>
+<style>
+  .gap-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px;margin-top:4px;}
+  .gap-card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);border:1px solid var(--border);padding:20px;transition:box-shadow .2s,border-color .2s;}
+  .gap-card:hover{box-shadow:var(--shadow-lg);border-color:#bae6fd;}
+  .gap-card-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;}
+  .gap-loc{font-size:1rem;font-weight:700;color:var(--navy);}
+  .gap-metrics{display:flex;gap:16px;margin-bottom:14px;}
+  .gap-metric{text-align:center;flex:1;}
+  .gap-metric .num{font-size:1.5rem;font-weight:800;line-height:1;margin-bottom:2px;}
+  .gap-metric .lbl{font-size:.72rem;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.03em;}
+  .gap-bar{height:6px;background:var(--teal-light);border-radius:99px;overflow:hidden;}
+  .gap-bar-fill{height:100%;border-radius:99px;transition:width .8s ease;}
+  .gap-missing{margin-top:10px;font-size:.78rem;color:var(--muted);}
+  .gap-missing strong{color:var(--navy);font-weight:600;}
+  .table-card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);border:1px solid var(--border);overflow:hidden;margin-top:24px;}
+  .table-card-header{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;}
+  .empty-state{text-align:center;padding:52px 20px;color:var(--muted);font-size:.86rem;}
+  .empty-state .big{font-size:2.5rem;margin-bottom:12px;}
+  .summary-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:16px;margin-bottom:24px;}
+  .summary-card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);border:1px solid var(--border);padding:18px;text-align:center;}
+  .summary-card .sc-val{font-size:1.8rem;font-weight:800;line-height:1.1;}
+  .summary-card .sc-lbl{font-size:.78rem;color:var(--muted);font-weight:600;margin-top:4px;}
+</style>
+</head>
+<body>
+
+<nav class="navbar">
+  <a href="index.html" class="nav-logo"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg><span>Medi</span>Link</a>
+  <div class="nav-links">
+    <a href="dashboard.html" class="nav-link">Dashboard</a>
+    <a href="patients.html" class="nav-link">Patients</a>
+    <a href="doctors.html" class="nav-link">Doctors</a>
+    <a href="allocate.html" class="nav-link">Allocator</a>
+    <a href="equipment.html" class="nav-link">Equipment</a>
+    <a href="telemedicine.html" class="nav-link">Telemedicine</a>
+    <a href="coverage.html" class="nav-link active">Coverage Gaps</a>
+  </div>
+  <div class="nav-actions" id="navActions"></div>
+</nav>
+
+<div class="page-wrapper">
+  <div class="page-header">
+    <h1>Coverage Gap Analysis</h1>
+    <p>Identify underserved regions, missing specializations, and resource shortages across rural districts.</p>
+  </div>
+
+  <!-- SUMMARY STATS -->
+  <div class="summary-cards" id="summaryCards"></div>
+
+  <!-- GAP CARDS -->
+  <div class="section-title">Regional Coverage Breakdown</div>
+  <div class="gap-grid" id="gapGrid"></div>
+
+  <!-- TABLE VIEW -->
+  <div class="table-card">
+    <div class="table-card-header">
+      <div style="display:flex;align-items:center;gap:10px;"><h2>Detailed Coverage Data</h2><span class="count-chip" id="regionCount">0</span></div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Region</th><th>Patients</th><th>Doctors</th><th>Ratio</th><th>Severity</th><th>Missing Specializations</th></tr></thead>
+        <tbody id="coverageTableBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ── Auth guard ── */
+(function(){
+  const u = localStorage.getItem('mp_user');
+  if(!u){ window.location = 'login.html'; return; }
+  const user = JSON.parse(u);
+  document.getElementById('navActions').innerHTML =
+    `<span style="font-size:.85rem;font-weight:600;color:var(--navy)">${user.name}</span>
+     <button class="btn-outline" onclick="localStorage.removeItem('mp_user');window.location='login.html'">Log Out</button>`;
+})();
+
+const severityColor = {Critical:'#ef4444',Moderate:'#f97316',Low:'#eab308',Good:'var(--teal)'};
+const severityBadge = {Critical:'badge-red',Moderate:'badge-orange',Low:'badge-yellow',Good:'badge-green'};
+
+function render(){
+  const gaps = Store.getCoverageGaps();
+  const patients = Store.getPatients();
+  const doctors = Store.getDoctors();
+
+  // Summary
+  const critical = gaps.filter(g=>g.severity==='Critical').length;
+  const moderate = gaps.filter(g=>g.severity==='Moderate').length;
+  const good = gaps.filter(g=>g.severity==='Good').length;
+  const uniqueSpecs = new Set(doctors.map(d=>d.spec));
+  const neededSpecs = new Set(patients.map(p=>p.spec));
+  const missingTotal = [...neededSpecs].filter(s=>!uniqueSpecs.has(s)).length;
+
+  document.getElementById('summaryCards').innerHTML = `
+    <div class="summary-card"><div class="sc-val" style="color:var(--navy)">${gaps.length}</div><div class="sc-lbl">Regions Tracked</div></div>
+    <div class="summary-card"><div class="sc-val" style="color:#ef4444">${critical}</div><div class="sc-lbl">Critical Gaps</div></div>
+    <div class="summary-card"><div class="sc-val" style="color:#f97316">${moderate}</div><div class="sc-lbl">Moderate Gaps</div></div>
+    <div class="summary-card"><div class="sc-val" style="color:var(--green)">${good}</div><div class="sc-lbl">Well Covered</div></div>
+    <div class="summary-card"><div class="sc-val" style="color:var(--teal)">${missingTotal}</div><div class="sc-lbl">Missing Specializations</div></div>
+  `;
+
+  // Gap Cards
+  const grid = document.getElementById('gapGrid');
+  if(gaps.length===0){
+    grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><div class="big">🗺️</div>No coverage data yet.<br>Add patients and doctors to see gap analysis.<br><a href="patients.html" style="color:var(--teal);font-weight:600;margin-top:8px;display:inline-block;">Register patients →</a></div>`;
+  } else {
+    grid.innerHTML = gaps.map(g=>{
+      const clr = severityColor[g.severity];
+      const pct = g.severity==='Good' ? 100 : Math.max(6, g.coverage);
+      const ratio = g.patients===0 ? 'N/A' : (g.doctors/g.patients).toFixed(2);
+      return `<div class="gap-card">
+        <div class="gap-card-top">
+          <div class="gap-loc">${g.loc}</div>
+          <span class="badge ${severityBadge[g.severity]}">${g.severity}</span>
+        </div>
+        <div class="gap-metrics">
+          <div class="gap-metric"><div class="num" style="color:var(--teal)">${g.patients}</div><div class="lbl">Patients</div></div>
+          <div class="gap-metric"><div class="num" style="color:var(--green)">${g.doctors}</div><div class="lbl">Doctors</div></div>
+          <div class="gap-metric"><div class="num">${ratio}</div><div class="lbl">Ratio</div></div>
+        </div>
+        <div class="gap-bar"><div class="gap-bar-fill" style="width:${pct}%;background:${clr}"></div></div>
+        ${g.missingSpecs.length ? `<div class="gap-missing"><strong>Missing:</strong> ${g.missingSpecs.join(', ')}</div>` : ''}
+      </div>`;
+    }).join('');
+  }
+
+  // Table
+  const tbody = document.getElementById('coverageTableBody');
+  document.getElementById('regionCount').textContent = gaps.length;
+  if(gaps.length===0){
+    tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state"><div class="big">🗺️</div>No data available yet.</div></td></tr>`;
+  } else {
+    tbody.innerHTML = gaps.map(g=>{
+      const ratio = g.patients===0 ? 'N/A' : (g.doctors/g.patients).toFixed(2);
+      return `<tr>
+        <td><strong>${g.loc}</strong></td>
+        <td>${g.patients}</td>
+        <td>${g.doctors}</td>
+        <td>${ratio}</td>
+        <td><span class="badge ${severityBadge[g.severity]}">${g.severity}</span></td>
+        <td>${g.missingSpecs.length ? g.missingSpecs.join(', ') : '<span style="color:var(--muted)">None</span>'}</td>
+      </tr>`;
+    }).join('');
+  }
+}
+
+render();
+</script>
+</body>
+</html>
