@@ -89,60 +89,6 @@ section{padding:96px 24px;}
 .feature-card h3{font-size:1rem;font-weight:700;margin-bottom:8px;}
 .feature-card p{font-size:.875rem;color:var(--muted);line-height:1.6;}
 
-/* HOW IT WORKS */
-#how{background:linear-gradient(135deg,#f0f9ff 0%,#fafffe 100%);}
-.how-grid{display:grid;grid-template-columns:1fr 1fr;gap:64px;align-items:center;}
-.steps-list{display:flex;flex-direction:column;}
-.step-item{display:flex;gap:20px;padding:24px 0;border-bottom:1px solid var(--border);}
-.step-item:last-child{border-bottom:none;}
-.step-num-circle{width:40px;height:40px;border-radius:50%;background:var(--teal);color:#fff;font-size:.85rem;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
-.step-body h4{font-size:.95rem;font-weight:700;margin-bottom:5px;}
-.step-body p{font-size:.85rem;color:var(--muted);line-height:1.6;}
-.how-card{background:var(--card);border-radius:20px;box-shadow:var(--shadow-lg);border:1px solid var(--border);overflow:hidden;}
-.how-card-header{padding:20px 20px 14px;border-bottom:1px solid var(--border);}
-.criteria-list{display:flex;flex-direction:column;}
-.criteria-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 20px;border-bottom:1px solid var(--border);}
-.criteria-left{display:flex;align-items:flex-start;gap:12px;flex:1;}
-.criteria-icon{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0;}
-.criteria-name{font-size:.84rem;font-weight:700;color:var(--navy);}
-.criteria-desc{font-size:.75rem;color:var(--muted);margin-top:2px;line-height:1.4;}
-.criteria-score{font-size:.82rem;font-weight:800;white-space:nowrap;}
-
-/* ABOUT */
-#about{background:#fff;}
-.about-grid{display:grid;grid-template-columns:1fr 1fr;gap:80px;align-items:center;}
-.about-visual{background:linear-gradient(135deg,#e0f2fe,#d1fae5);border-radius:24px;padding:48px 32px;text-align:center;}
-.about-icon{font-size:5rem;margin-bottom:16px;}
-.about-tag{font-size:1.2rem;font-weight:700;color:var(--navy);}
-.about-tag span{color:var(--teal);}
-.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px;justify-content:center;}
-.chip{background:#fff;border:1.5px solid var(--border);border-radius:50px;padding:5px 14px;font-size:.78rem;font-weight:600;color:var(--slate);}
-.about-content p{font-size:.95rem;color:var(--muted);line-height:1.75;margin-bottom:16px;}
-.about-points{display:flex;flex-direction:column;gap:12px;margin-top:8px;}
-.ap{display:flex;align-items:flex-start;gap:12px;font-size:.9rem;color:var(--slate);}
-.ap-dot{width:22px;height:22px;border-radius:50%;background:var(--green-light);display:flex;align-items:center;justify-content:center;font-size:.7rem;flex-shrink:0;margin-top:1px;}
-
-/* CONTACT */
-#contact{background:linear-gradient(135deg,#f0f9ff 0%,#f0fdf4 100%);}
-.contact-grid{display:grid;grid-template-columns:1fr 1fr;gap:56px;align-items:start;}
-.contact-list{display:flex;flex-direction:column;gap:24px;margin-top:8px;}
-.contact-block{display:flex;align-items:flex-start;gap:14px;}
-.contact-icon{width:44px;height:44px;border-radius:12px;background:var(--teal-light);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
-.contact-block h4{font-size:.88rem;font-weight:700;color:var(--navy);margin-bottom:3px;}
-.contact-block p{font-size:.84rem;color:var(--muted);line-height:1.5;}
-.contact-form-card{background:var(--card);border-radius:20px;box-shadow:var(--shadow-lg);border:1px solid var(--border);padding:32px;}
-.cf-title{font-size:1.05rem;font-weight:700;color:var(--navy);margin-bottom:20px;}
-.cf-fields{display:flex;flex-direction:column;gap:14px;}
-.two-col{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
-.form-group{display:flex;flex-direction:column;gap:5px;}
-.form-group label{font-size:.78rem;font-weight:600;color:var(--slate);}
-.form-control{padding:10px 14px;border:1.5px solid var(--border);border-radius:10px;font-family:inherit;font-size:.88rem;color:var(--navy);background:#fff;outline:none;transition:border-color .2s;}
-.form-control:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(14,165,233,.1);}
-.form-control::placeholder{color:#94a3b8;}
-textarea.form-control{resize:vertical;min-height:100px;}
-.cf-btn{padding:12px 28px;background:var(--teal);color:#fff;border:none;border-radius:50px;font-family:inherit;font-size:.95rem;font-weight:700;cursor:pointer;width:100%;margin-top:4px;display:flex;align-items:center;justify-content:center;gap:8px;transition:all .2s;}
-.cf-btn:hover{background:var(--teal-dark);box-shadow:0 4px 14px rgba(14,165,233,.35);}
-.cf-success{display:none;background:var(--green-light);border:1.5px solid #bbf7d0;border-radius:10px;padding:14px;font-size:.88rem;color:#15803d;font-weight:600;text-align:center;margin-top:12px;}
 
 /* CTA */
 .cta-banner{background:linear-gradient(135deg,var(--teal-dark) 0%,var(--teal) 60%,#38bdf8 100%);padding:80px 24px;text-align:center;}
@@ -179,7 +125,6 @@ footer{background:var(--navy);color:rgba(255,255,255,.7);padding:48px 24px 28px;
 @media(max-width:900px){
   .navbar{padding:0 20px;}
   .nav-links{display:none;}
-  .how-grid,.about-grid,.contact-grid{grid-template-columns:1fr;gap:36px;}
 }
 @media(max-width:600px){
   .hero-stats{gap:20px;}
@@ -198,7 +143,6 @@ footer{background:var(--navy);color:rgba(255,255,255,.7);padding:48px 24px 28px;
   </a>
   <div class="nav-links">
     <a href="#features" class="nav-link">Features</a>
-    <a href="#how" class="nav-link">How it Works</a>
     <a href="#about" class="nav-link">About Us</a>
     <a href="#contact" class="nav-link">Contact</a>
   </div>
@@ -255,186 +199,6 @@ footer{background:var(--navy);color:rgba(255,255,255,.7);padding:48px 24px 28px;
   </div>
 </section>
 
-<!-- HOW IT WORKS -->
-<section id="how">
-  <div class="wrap">
-    <div class="how-grid">
-      <div class="reveal">
-        <div class="section-tag"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>How it Works</div>
-        <h2 class="section-title">From registration to allocation in 3 steps</h2>
-        <p class="section-sub" style="margin-bottom:32px">No complex setup. Add your data and let the system do the matching.</p>
-        <div class="steps-list">
-          <div class="step-item">
-            <div class="step-num-circle">1</div>
-            <div class="step-body"><h4>Register Patients & Doctors</h4><p>Add patient details with location, condition, urgency, and consultation type. Maintain a live doctor registry with specializations and real-time availability.</p></div>
-          </div>
-          <div class="step-item">
-            <div class="step-num-circle">2</div>
-            <div class="step-body"><h4>System Finds the Best Match</h4><p>The allocation engine scores available doctors against patient needs — specialization, location, urgency, and telemedicine preference all factor in.</p></div>
-          </div>
-          <div class="step-item">
-            <div class="step-num-circle">3</div>
-            <div class="step-body"><h4>Confirm & Dispatch</h4><p>Review the match, confirm allocation. Doctor is marked busy, patient marked allocated, and the dashboard updates instantly across all pages.</p></div>
-          </div>
-        </div>
-      </div>
-      <div class="reveal">
-        <div class="how-card">
-          <div class="how-card-header">
-            <div style="font-size:.76rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em">Matching Criteria</div>
-            <div style="font-size:1rem;font-weight:800;color:var(--navy);margin-top:4px">How doctors are scored</div>
-          </div>
-
-          <div class="criteria-list">
-            <div class="criteria-row">
-              <div class="criteria-left">
-                <div class="criteria-icon" style="background:#e0f2fe">🩺</div>
-                <div>
-                  <div class="criteria-name">Specialization Match</div>
-                  <div class="criteria-desc">Doctor's specialty matches what the patient needs</div>
-                </div>
-              </div>
-              <div class="criteria-score" style="color:var(--teal)">+40 pts</div>
-            </div>
-            <div class="criteria-row">
-              <div class="criteria-left">
-                <div class="criteria-icon" style="background:#dcfce7">📍</div>
-                <div>
-                  <div class="criteria-name">Same Location</div>
-                  <div class="criteria-desc">Doctor is in the same district as the patient</div>
-                </div>
-              </div>
-              <div class="criteria-score" style="color:#16a34a">+20 pts</div>
-            </div>
-            <div class="criteria-row">
-              <div class="criteria-left">
-                <div class="criteria-icon" style="background:#f3e8ff">📡</div>
-                <div>
-                  <div class="criteria-name">Telemedicine Fit</div>
-                  <div class="criteria-desc">Tele-enabled doctor for remote consultation</div>
-                </div>
-              </div>
-              <div class="criteria-score" style="color:#7c3aed">+10 pts</div>
-            </div>
-            <div class="criteria-row">
-              <div class="criteria-left">
-                <div class="criteria-icon" style="background:#fff7ed">⚡</div>
-                <div>
-                  <div class="criteria-name">Urgency Priority</div>
-                  <div class="criteria-desc">Critical cases are moved to the top of the queue</div>
-                </div>
-              </div>
-              <div class="criteria-score" style="color:#ea580c">Priority</div>
-            </div>
-            <div class="criteria-row" style="border-bottom:none">
-              <div class="criteria-left">
-                <div class="criteria-icon" style="background:#dcfce7">✅</div>
-                <div>
-                  <div class="criteria-name">Availability Check</div>
-                  <div class="criteria-desc">Only doctors with Available status are suggested</div>
-                </div>
-              </div>
-              <div class="criteria-score" style="color:#16a34a">Required</div>
-            </div>
-          </div>
-
-          <div style="padding:14px 20px;text-align:center;border-top:1px solid var(--border)">
-            <a href="allocate.html" style="font-size:.84rem;color:var(--teal);font-weight:700;text-decoration:none">Try the Allocator →</a>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ABOUT -->
-<section id="about">
-  <div class="wrap">
-    <div class="about-grid">
-      <div class="reveal">
-        <div class="about-visual">
-          <div class="about-icon">🏥</div>
-          <div class="about-tag">Built for <span>Rural India</span></div>
-          <p style="font-size:.84rem;color:var(--muted);margin-top:8px;line-height:1.6">Designed around real challenges of healthcare access in districts like Bidar, Kalaburagi, Vijayapura, Dharwad, and beyond.</p>
-          <div class="chips">
-            <span class="chip">MySQL 8.0</span>
-            <span class="chip">Flask / Node.js</span>
-            <span class="chip">Chart.js</span>
-            <span class="chip">HTML · CSS · JS</span>
-          </div>
-        </div>
-      </div>
-      <div class="about-content reveal">
-        <div class="section-tag"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>About Us</div>
-        <h2 class="section-title">Closing the rural healthcare gap with data</h2>
-        <p>Access to quality healthcare in rural and remote areas is severely limited — uneven distribution of medical professionals, lack of specialists, insufficient emergency transport, and poor coordination between facilities.</p>
-        <p>MediLink is a centralized, database-driven system that tracks patients, healthcare providers, facilities, equipment, telemedicine slots, and transport across rural regions — and intelligently allocates them in real time.</p>
-        <div class="about-points">
-          <div class="ap"><div class="ap-dot">✓</div>Allocation of doctors and specialists based on real availability and patient needs</div>
-          <div class="ap"><div class="ap-dot">✓</div>Telemedicine appointment management across districts</div>
-          <div class="ap"><div class="ap-dot">✓</div>Mobile clinic and ambulance dispatch coordination</div>
-          <div class="ap"><div class="ap-dot">✓</div>Data-driven identification of underserved regions and specialist shortages</div>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- CONTACT -->
-<section id="contact">
-  <div class="wrap">
-    <div class="contact-grid">
-      <div class="reveal">
-        <div class="section-tag"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.65 3.35 2 2 0 0 1 3.62 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.6a16 16 0 0 0 6 6l.96-.96a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 21.5 16z"/></svg>Contact</div>
-        <h2 class="section-title">Get in touch with us</h2>
-        <p class="section-sub" style="margin-bottom:36px">Have questions or want to deploy MediLink in your district? Reach out — we respond within 24 hours.</p>
-        <div class="contact-list">
-          <div class="contact-block">
-            <div class="contact-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></div>
-            <div><h4>Email</h4><p>contact@medipredict.health<br>support@medipredict.health</p></div>
-          </div>
-          <div class="contact-block">
-            <div class="contact-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg></div>
-            <div><h4>Based in</h4><p>Karnataka, India<br>Serving rural districts across the state</p></div>
-          </div>
-          <div class="contact-block">
-            <div class="contact-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
-            <div><h4>Response Time</h4><p>We respond to all inquiries<br>within 24 hours on business days</p></div>
-          </div>
-        </div>
-      </div>
-      <div class="reveal">
-        <div class="contact-form-card">
-          <div class="cf-title">✉️ Send us a message</div>
-          <div class="cf-fields">
-            <div class="two-col">
-              <div class="form-group"><label>First Name</label><input id="cf-fname" type="text" class="form-control" placeholder="First name"/></div>
-              <div class="form-group"><label>Last Name</label><input id="cf-lname" type="text" class="form-control" placeholder="Last name"/></div>
-            </div>
-            <div class="form-group"><label>Email Address</label><input id="cf-email" type="email" class="form-control" placeholder="you@example.com"/></div>
-            <div class="form-group"><label>Subject</label>
-              <select id="cf-subject" class="form-control">
-                <option value="">Select a topic…</option>
-                <option>General Inquiry</option>
-                <option>Deployment in my district</option>
-                <option>Technical Support</option>
-                <option>Partnership</option>
-                <option>Other</option>
-              </select>
-            </div>
-            <div class="form-group"><label>Message</label><textarea id="cf-message" class="form-control" placeholder="Tell us how we can help…"></textarea></div>
-            <button class="cf-btn" onclick="sendMessage()">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-              Send Message
-            </button>
-            <div class="cf-success" id="cfSuccess">✓ Message sent! We'll get back to you within 24 hours.</div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
 <!-- CTA BANNER -->
 <div class="cta-banner reveal">
   <h2>Ready to transform rural healthcare?</h2>
@@ -461,7 +225,6 @@ footer{background:var(--navy);color:rgba(255,255,255,.7);padding:48px 24px 28px;
         <h4>Navigation</h4>
         <ul>
           <li><a href="#features">Features</a></li>
-          <li><a href="#how">How it Works</a></li>
           <li><a href="#about">About Us</a></li>
           <li><a href="#contact">Contact</a></li>
         </ul>
@@ -501,19 +264,7 @@ const obs = new IntersectionObserver(entries => {
 }, { threshold: 0.1 });
 document.querySelectorAll('.reveal').forEach(el => obs.observe(el));
 
-// Contact form
-function sendMessage() {
-  const fname   = document.getElementById('cf-fname').value.trim();
-  const email   = document.getElementById('cf-email').value.trim();
-  const message = document.getElementById('cf-message').value.trim();
-  if (!fname || !email || !message) { alert('Please fill in your name, email, and message.'); return; }
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { alert('Please enter a valid email address.'); return; }
-  ['cf-fname','cf-lname','cf-email','cf-message'].forEach(id => document.getElementById(id).value = '');
-  document.getElementById('cf-subject').value = '';
-  const success = document.getElementById('cfSuccess');
-  success.style.display = 'block';
-  setTimeout(() => success.style.display = 'none', 5000);
-}
+
 
 // Smooth scroll
 document.querySelectorAll('a[href^="#"]').forEach(a => {

@@ -15,8 +15,8 @@ const Store = (() => {
     const n = c[type];
     c[type]++;
     localStorage.setItem(KEYS.idCounters, JSON.stringify(c));
-    return n;
-  }
+    return n; 
+  } 
 
   // ── Generic read/write ──
   function read(key)       { return JSON.parse(localStorage.getItem(key) || '[]'); }
