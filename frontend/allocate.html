@@ -1,367 +1,648 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-<meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>MediLink — Allocator</title>
-<link rel="stylesheet" href="shared.css"/>
-<script src="store.js"></script>
-<style>
-  .allocator-grid{display:grid;grid-template-columns:1fr 1.6fr;gap:24px;}
-  .steps-bar{display:flex;align-items:center;gap:0;margin-bottom:28px;}
-  .step{display:flex;align-items:center;gap:8px;}
-  .step-num{width:30px;height:30px;border-radius:50%;background:var(--border);color:var(--muted);font-size:.8rem;font-weight:700;display:flex;align-items:center;justify-content:center;transition:all .3s;flex-shrink:0;}
-  .step.active .step-num{background:var(--teal);color:#fff;}
-  .step.done .step-num{background:var(--green);color:#fff;}
-  .step-label{font-size:.82rem;font-weight:600;color:var(--muted);transition:color .3s;}
-  .step.active .step-label{color:var(--teal-dark);}
-  .step.done .step-label{color:var(--green);}
-  .step-line{flex:1;height:2px;background:var(--border);margin:0 8px;transition:background .3s;}
-  .step-line.done{background:var(--green);}
-  .panel{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);border:1px solid var(--border);padding:22px;}
-  .panel-title{font-size:1rem;font-weight:700;color:var(--navy);margin-bottom:16px;display:flex;align-items:center;gap:8px;}
-  .patient-option{border:1.5px solid var(--border);border-radius:10px;padding:13px;cursor:pointer;transition:all .2s;margin-bottom:8px;}
-  .patient-option:hover{border-color:var(--teal);background:#f0f9ff;}
-  .patient-option.selected{border-color:var(--teal);background:var(--teal-light);}
-  .patient-option .row1{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;}
-  .patient-option .pname{font-weight:700;color:var(--navy);font-size:.9rem;}
-  .patient-option .pmeta{font-size:.76rem;color:var(--muted);}
-  .suggestion-card{border:1.5px solid var(--border);border-radius:12px;padding:16px;margin-bottom:10px;transition:all .2s;cursor:pointer;}
-  .suggestion-card:hover{border-color:var(--teal);box-shadow:0 2px 12px rgba(14,165,233,.1);}
-  .suggestion-card.selected{border-color:var(--teal);background:#f0f9ff;}
-  .suggestion-card.disabled{opacity:.45;cursor:not-allowed;}
-  .s-top{display:flex;justify-content:space-between;align-items:flex-start;}
-  .s-name{font-weight:700;color:var(--navy);font-size:.92rem;}
-  .s-spec{font-size:.76rem;color:var(--teal-dark);font-weight:600;}
-  .s-score{background:var(--green-light);color:#15803d;font-size:.78rem;font-weight:700;padding:3px 10px;border-radius:50px;}
-  .s-meta{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;}
-  .s-tag{font-size:.73rem;background:#f1f5f9;color:var(--slate);padding:3px 9px;border-radius:50px;font-weight:500;}
-  .confirm-row{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--border);}
-  .confirm-row:last-child{border-bottom:none;}
-  .confirm-key{font-size:.82rem;color:var(--muted);}
-  .confirm-val{font-size:.82rem;font-weight:600;color:var(--navy);}
-  .empty-suggestion{text-align:center;padding:32px 16px;color:var(--muted);font-size:.86rem;}
-  .empty-suggestion .big{font-size:2rem;margin-bottom:8px;}
-  .transport-option{border:1.5px solid var(--border);border-radius:10px;padding:12px 14px;cursor:pointer;transition:all .2s;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;}
-  .transport-option:hover{border-color:var(--teal);background:#f0f9ff;}
-  .transport-option.selected{border-color:var(--teal);background:var(--teal-light);}
-  .transport-option.disabled{opacity:.4;cursor:not-allowed;pointer-events:none;}
-  .history-empty{text-align:center;padding:32px;color:var(--muted);font-size:.86rem;}
-  @media(max-width:900px){.allocator-grid{grid-template-columns:1fr;}}
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MediLink — Allocator</title>
+  <link rel="stylesheet" href="shared.css" />
+  <script src="store.js"></script>
+  <style>
+    .allocator-grid {
+      display: grid;
+      grid-template-columns: 1fr 1.6fr;
+      gap: 24px;
+    }
+
+    .steps-bar {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      margin-bottom: 28px;
+    }
+
+    .step {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .step-num {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      background: var(--border);
+      color: var(--muted);
+      font-size: .8rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all .3s;
+      flex-shrink: 0;
+    }
+
+    .step.active .step-num {
+      background: var(--teal);
+      color: #fff;
+    }
+
+    .step.done .step-num {
+      background: var(--green);
+      color: #fff;
+    }
+
+    .step-label {
+      font-size: .82rem;
+      font-weight: 600;
+      color: var(--muted);
+      transition: color .3s;
+    }
+
+    .step.active .step-label {
+      color: var(--teal-dark);
+    }
+
+    .step.done .step-label {
+      color: var(--green);
+    }
+
+    .step-line {
+      flex: 1;
+      height: 2px;
+      background: var(--border);
+      margin: 0 8px;
+      transition: background .3s;
+    }
+
+    .step-line.done {
+      background: var(--green);
+    }
+
+    .panel {
+      background: var(--card);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      border: 1px solid var(--border);
+      padding: 22px;
+    }
+
+    .panel-title {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--navy);
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .patient-option {
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      padding: 13px;
+      cursor: pointer;
+      transition: all .2s;
+      margin-bottom: 8px;
+    }
+
+    .patient-option:hover {
+      border-color: var(--teal);
+      background: #f0f9ff;
+    }
+
+    .patient-option.selected {
+      border-color: var(--teal);
+      background: var(--teal-light);
+    }
+
+    .patient-option .row1 {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 4px;
+    }
+
+    .patient-option .pname {
+      font-weight: 700;
+      color: var(--navy);
+      font-size: .9rem;
+    }
+
+    .patient-option .pmeta {
+      font-size: .76rem;
+      color: var(--muted);
+    }
+
+    .suggestion-card {
+      border: 1.5px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 10px;
+      transition: all .2s;
+      cursor: pointer;
+    }
+
+    .suggestion-card:hover {
+      border-color: var(--teal);
+      box-shadow: 0 2px 12px rgba(14, 165, 233, .1);
+    }
+
+    .suggestion-card.selected {
+      border-color: var(--teal);
+      background: #f0f9ff;
+    }
+
+    .suggestion-card.disabled {
+      opacity: .45;
+      cursor: not-allowed;
+    }
+
+    .s-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+
+    .s-name {
+      font-weight: 700;
+      color: var(--navy);
+      font-size: .92rem;
+    }
+
+    .s-spec {
+      font-size: .76rem;
+      color: var(--teal-dark);
+      font-weight: 600;
+    }
+
+    .s-score {
+      background: var(--green-light);
+      color: #15803d;
+      font-size: .78rem;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: 50px;
+    }
+
+    .s-meta {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 10px;
+    }
+
+    .s-tag {
+      font-size: .73rem;
+      background: #f1f5f9;
+      color: var(--slate);
+      padding: 3px 9px;
+      border-radius: 50px;
+      font-weight: 500;
+    }
+
+    .confirm-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 9px 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .confirm-row:last-child {
+      border-bottom: none;
+    }
+
+    .confirm-key {
+      font-size: .82rem;
+      color: var(--muted);
+    }
+
+    .confirm-val {
+      font-size: .82rem;
+      font-weight: 600;
+      color: var(--navy);
+    }
+
+    .empty-suggestion {
+      text-align: center;
+      padding: 32px 16px;
+      color: var(--muted);
+      font-size: .86rem;
+    }
+
+    .empty-suggestion .big {
+      font-size: 2rem;
+      margin-bottom: 8px;
+    }
+
+    .transport-option {
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 14px;
+      cursor: pointer;
+      transition: all .2s;
+      margin-bottom: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .transport-option:hover {
+      border-color: var(--teal);
+      background: #f0f9ff;
+    }
+
+    .transport-option.selected {
+      border-color: var(--teal);
+      background: var(--teal-light);
+    }
+
+    .transport-option.disabled {
+      opacity: .4;
+      cursor: not-allowed;
+      pointer-events: none;
+    }
+
+    .history-empty {
+      text-align: center;
+      padding: 32px;
+      color: var(--muted);
+      font-size: .86rem;
+    }
+
+    @media(max-width:900px) {
+      .allocator-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
 </head>
+
 <body>
-<nav class="navbar">
-  <a href="index.html" class="nav-logo"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg><span>Medi</span>Link</a>
-  <div class="nav-links">
-    <a href="dashboard.html" class="nav-link">Dashboard</a>
-    <a href="patients.html" class="nav-link">Patients</a>
-    <a href="doctors.html" class="nav-link">Doctors</a>
-    <a href="allocate.html" class="nav-link active">Allocator</a>
-    <a href="equipment.html" class="nav-link">Equipment</a>
-    <a href="telemedicine.html" class="nav-link">Telemedicine</a>
-    <a href="coverage.html" class="nav-link">Coverage Gaps</a>
-  </div>
-  <div class="nav-actions" id="navActions"></div>
-</nav>
+  <nav class="navbar">
+    <a href="index.html" class="nav-logo"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" stroke-width="2.2">
+        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+      </svg><span>Medi</span>Link</a>
+    <div class="nav-links">
+      <a href="dashboard.html" class="nav-link">Dashboard</a>
+      <a href="patients.html" class="nav-link">Patients</a>
+      <a href="doctors.html" class="nav-link">Doctors</a>
+      <a href="allocate.html" class="nav-link active">Allocator</a>
+      <a href="equipment.html" class="nav-link">Equipment</a>
+      <a href="telemedicine.html" class="nav-link">Telemedicine</a>
+      <a href="coverage.html" class="nav-link">Coverage Gaps</a>
+    </div>
+    <div class="nav-actions" id="navActions"></div>
+  </nav>
 
-<div class="page-wrapper">
-  <div class="page-header"><h1>Resource Allocator</h1><p>Select a pending patient → review matched doctors → confirm the allocation.</p></div>
+  <div class="page-wrapper">
+    <div class="page-header">
+      <h1>Resource Allocator</h1>
+      <p>Select a pending patient → review matched doctors → confirm the allocation.</p>
+    </div>
 
-  <!-- STEPS -->
-  <div class="steps-bar">
-    <div class="step active" id="step1"><div class="step-num">1</div><div class="step-label">Select Patient</div></div>
-    <div class="step-line" id="line1"></div>
-    <div class="step" id="step2"><div class="step-num">2</div><div class="step-label">Review Matches</div></div>
-    <div class="step-line" id="line2"></div>
-    <div class="step" id="step3"><div class="step-num">3</div><div class="step-label">Confirm</div></div>
-  </div>
-
-  <div class="allocator-grid">
-    <!-- LEFT -->
-    <div>
-      <div class="panel">
-        <div class="panel-title"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Step 1 — Choose Patient</div>
-        <div style="display:flex;align-items:center;gap:8px;background:#f8fafc;border:1.5px solid var(--border);border-radius:9px;padding:8px 12px;margin-bottom:12px;">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2.2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          <input id="ptSearch" placeholder="Search patients…" oninput="renderPatients()" style="border:none;outline:none;font-family:inherit;font-size:.85rem;color:var(--navy);background:transparent;width:100%;"/>
-        </div>
-        <div style="max-height:380px;overflow-y:auto;padding-right:2px;" id="patientList"></div>
-        <div class="divider"></div>
-        <button class="btn-teal" style="width:100%" id="nextBtn" disabled onclick="goToStep2()">Find Best Matches →</button>
+    <!-- STEPS -->
+    <div class="steps-bar">
+      <div class="step active" id="step1">
+        <div class="step-num">1</div>
+        <div class="step-label">Select Patient</div>
+      </div>
+      <div class="step-line" id="line1"></div>
+      <div class="step" id="step2">
+        <div class="step-num">2</div>
+        <div class="step-label">Review Matches</div>
+      </div>
+      <div class="step-line" id="line2"></div>
+      <div class="step" id="step3">
+        <div class="step-num">3</div>
+        <div class="step-label">Confirm</div>
       </div>
     </div>
 
-    <!-- RIGHT -->
-    <div id="rightPanel">
-      <!-- Placeholder -->
-      <div class="panel" id="placeholderPanel">
-        <div style="text-align:center;padding:56px 20px;">
-          <div style="font-size:3rem;margin-bottom:12px;">🎯</div>
-          <div style="font-weight:700;color:var(--navy);font-size:1rem;">Select a patient to begin</div>
-          <div style="color:var(--muted);font-size:.84rem;margin-top:6px;line-height:1.5">The system will match the best available doctor based on urgency, location, and specialization.</div>
+    <div class="allocator-grid">
+      <!-- LEFT -->
+      <div>
+        <div class="panel">
+          <div class="panel-title"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--teal)"
+              stroke-width="2">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+              <circle cx="12" cy="7" r="4" />
+            </svg>Step 1 — Choose Patient</div>
+          <div
+            style="display:flex;align-items:center;gap:8px;background:#f8fafc;border:1.5px solid var(--border);border-radius:9px;padding:8px 12px;margin-bottom:12px;">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2.2">
+              <circle cx="11" cy="11" r="8" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+            <input id="ptSearch" placeholder="Search patients…" oninput="renderPatients()"
+              style="border:none;outline:none;font-family:inherit;font-size:.85rem;color:var(--navy);background:transparent;width:100%;" />
+          </div>
+          <div style="max-height:380px;overflow-y:auto;padding-right:2px;" id="patientList"></div>
+          <div class="divider"></div>
+          <button class="btn-teal" style="width:100%" id="nextBtn" disabled onclick="goToStep2()">Find Best Matches
+            →</button>
         </div>
       </div>
 
-      <!-- Suggestions -->
-      <div class="panel" id="suggestionsPanel" style="display:none;">
-        <div class="panel-title"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Step 2 — Matches for <span id="matchName" style="color:var(--teal)">…</span></div>
-        <div id="urgencyInfo" style="margin-bottom:14px;"></div>
-        <div class="section-title" style="font-size:.84rem;">👨‍⚕️ Available Doctors</div>
-        <div id="doctorSuggestions"></div>
-        <div class="divider"></div>
-        <div class="section-title" style="font-size:.84rem;">🚑 Transport (optional)</div>
-        <div id="transportSection"></div>
-        <div style="margin-top:14px;display:flex;gap:10px;">
-          <button class="btn-ghost" onclick="goToStep1()">← Back</button>
-          <button class="btn-teal" style="flex:1" id="confirmBtn" disabled onclick="goToStep3()">Review & Confirm →</button>
+      <!-- RIGHT -->
+      <div id="rightPanel">
+        <!-- Placeholder -->
+        <div class="panel" id="placeholderPanel">
+          <div style="text-align:center;padding:56px 20px;">
+            <div style="font-size:3rem;margin-bottom:12px;">🎯</div>
+            <div style="font-weight:700;color:var(--navy);font-size:1rem;">Select a patient to begin</div>
+            <div style="color:var(--muted);font-size:.84rem;margin-top:6px;line-height:1.5">The system will match the
+              best available doctor based on urgency, location, and specialization.</div>
+          </div>
         </div>
-      </div>
 
-      <!-- Confirm -->
-      <div class="panel" id="confirmPanel" style="display:none;">
-        <div class="panel-title"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>Step 3 — Confirm Allocation</div>
-        <div id="confirmDetails"></div>
-        <div style="margin-top:18px;display:flex;gap:10px;">
-          <button class="btn-ghost" onclick="goToStep2()">← Back</button>
-          <button class="btn-teal" style="flex:1;background:var(--green)" onclick="finalConfirm()">✓ Confirm Allocation</button>
+        <!-- Suggestions -->
+        <div class="panel" id="suggestionsPanel" style="display:none;">
+          <div class="panel-title"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--teal)"
+              stroke-width="2">
+              <circle cx="12" cy="12" r="10" />
+              <polyline points="12 6 12 12 16 14" />
+            </svg>Step 2 — Matches for <span id="matchName" style="color:var(--teal)">…</span></div>
+          <div id="urgencyInfo" style="margin-bottom:14px;"></div>
+          <div class="section-title" style="font-size:.84rem;">👨‍⚕️ Available Doctors</div>
+          <div id="doctorSuggestions"></div>
+          <div class="divider"></div>
+          <div class="section-title" style="font-size:.84rem;">🚑 Transport (optional)</div>
+          <div id="transportSection"></div>
+          <div style="margin-top:14px;display:flex;gap:10px;">
+            <button class="btn-ghost" onclick="goToStep1()">← Back</button>
+            <button class="btn-teal" style="flex:1" id="confirmBtn" disabled onclick="goToStep3()">Review & Confirm
+              →</button>
+          </div>
         </div>
-      </div>
 
-      <!-- Success -->
-      <div class="panel" id="successPanel" style="display:none;">
-        <div style="text-align:center;padding:32px;">
-          <div style="font-size:3rem;margin-bottom:12px;">✅</div>
-          <h3 style="font-size:1.2rem;font-weight:800;color:var(--navy)">Allocation Confirmed!</h3>
-          <p id="successMsg" style="color:var(--muted);font-size:.88rem;margin-top:8px;line-height:1.5"></p>
-          <div style="margin-top:20px;display:flex;gap:10px;justify-content:center;">
-            <button class="btn-teal" onclick="resetAllocator()">New Allocation</button>
-            <a href="dashboard.html" class="btn-ghost">Dashboard</a>
+        <!-- Confirm -->
+        <div class="panel" id="confirmPanel" style="display:none;">
+          <div class="panel-title"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--teal)"
+              stroke-width="2">
+              <polyline points="20 6 9 17 4 12" />
+            </svg>Step 3 — Confirm Allocation</div>
+          <div id="confirmDetails"></div>
+          <div style="margin-top:18px;display:flex;gap:10px;">
+            <button class="btn-ghost" onclick="goToStep2()">← Back</button>
+            <button class="btn-teal" style="flex:1;background:var(--green)" onclick="finalConfirm()">✓ Confirm
+              Allocation</button>
+          </div>
+        </div>
+
+        <!-- Success -->
+        <div class="panel" id="successPanel" style="display:none;">
+          <div style="text-align:center;padding:32px;">
+            <div style="font-size:3rem;margin-bottom:12px;">✅</div>
+            <h3 style="font-size:1.2rem;font-weight:800;color:var(--navy)">Allocation Confirmed!</h3>
+            <p id="successMsg" style="color:var(--muted);font-size:.88rem;margin-top:8px;line-height:1.5"></p>
+            <div style="margin-top:20px;display:flex;gap:10px;justify-content:center;">
+              <button class="btn-teal" onclick="resetAllocator()">New Allocation</button>
+              <a href="dashboard.html" class="btn-ghost">Dashboard</a>
+            </div>
           </div>
         </div>
       </div>
     </div>
+
+    <!-- HISTORY -->
+    <div class="card" style="margin-top:24px;">
+      <div class="section-title">📋 Allocation History</div>
+      <div id="allocHistory"></div>
+    </div>
   </div>
 
-  <!-- HISTORY -->
-  <div class="card" style="margin-top:24px;">
-    <div class="section-title">📋 Allocation History</div>
-    <div id="allocHistory"></div>
-  </div>
-</div>
-
-<script>
-/* Auth guard */
-(function(){
-  const u = localStorage.getItem('mp_user');
-  if(!u){ window.location = 'login.html'; return; }
-  const user = JSON.parse(u);
-  document.getElementById('navActions').innerHTML =
-    `<span style="font-size:.85rem;font-weight:600;color:var(--navy)">${user.name}</span>
+  <script>
+    /* Auth guard */
+    (function () {
+      const u = localStorage.getItem('mp_user');
+      if (!u) { window.location = 'login.html'; return; }
+      const user = JSON.parse(u);
+      document.getElementById('navActions').innerHTML =
+        `<span style="font-size:.85rem;font-weight:600;color:var(--navy)">${user.name}</span>
      <button class="btn-outline" onclick="localStorage.removeItem('mp_user');window.location='login.html'">Log Out</button>`;
-})();
+    })();
 
-const urgBadge={Critical:'badge-red',High:'badge-orange',Moderate:'badge-yellow',Low:'badge-green'};
-let selPatient=null, selDoctor=null, selTransport=null;
+    const urgBadge = { critical: 'badge-red', high: 'badge-orange', medium: 'badge-yellow', low: 'badge-green' };
+    const emoji = { male: '👨‍⚕️', female: '👩‍⚕️' };
+    let selPatient = null, selDoctor = null, selTransport = null;
 
-// Transport pool — always available, doesn't persist
-const TRANSPORTS=[
-  {id:'AMB-01',type:'Advanced Life Support',eta:'8 min'},
-  {id:'AMB-02',type:'Basic Ambulance',eta:'12 min'},
-  {id:'AMB-03',type:'Mobile Clinic',eta:'20 min'},
-  {id:'AMB-04',type:'Emergency Response',eta:'6 min'},
-];
+    const TRANSPORTS = [
+      { id: 'AMB-01', type: 'Advanced Life Support', eta: '8 min' },
+      { id: 'AMB-02', type: 'Basic Ambulance', eta: '12 min' },
+      { id: 'AMB-03', type: 'Mobile Clinic', eta: '20 min' },
+      { id: 'AMB-04', type: 'Emergency Response', eta: '6 min' },
+    ];
 
-function renderPatients(){
-  const q=document.getElementById('ptSearch').value.toLowerCase();
-  const patients=Store.getPatients().filter(p=>p.status==='Pending'&&(!q||p.name.toLowerCase().includes(q)||p.location.toLowerCase().includes(q)));
-  const list=document.getElementById('patientList');
-  if(patients.length===0){
-    const all=Store.getPatients();
-    if(all.length===0){
-      list.innerHTML=`<div style="text-align:center;padding:28px;color:var(--muted);font-size:.84rem"><div style="font-size:2rem;margin-bottom:8px">👤</div>No patients registered yet.<br><a href="patients.html" style="color:var(--teal);font-weight:600">Register patients first →</a></div>`;
-    } else {
-      list.innerHTML=`<div style="text-align:center;padding:20px;color:var(--muted);font-size:.84rem">All patients have been allocated or no matches found.</div>`;
-    }
-    return;
-  }
-  list.innerHTML=patients.map(p=>{
-    const isSel=selPatient&&selPatient.id===p.id;
-    return`<div class="patient-option ${isSel?'selected':''}" onclick="selectPatient('${p.id}')">
-      <div class="row1"><span class="pname">${p.name}</span><span class="badge ${urgBadge[p.urgency]||'badge-gray'}">${p.urgency||'—'}</span></div>
-      <div class="pmeta">📍 ${p.location} · ${p.condition||'N/A'} · ${p.consult}</div>
+    async function renderPatients() {
+      const q = document.getElementById('ptSearch').value.toLowerCase();
+      const all = await fetch('/api/patients').then(r => r.json());
+      const patients = all.filter(p =>
+        p.status === 'pending' &&
+        (!q || p.name.toLowerCase().includes(q) || p.location.toLowerCase().includes(q))
+      );
+      const list = document.getElementById('patientList');
+      if (patients.length === 0) {
+        if (all.length === 0) {
+          list.innerHTML = `<div style="text-align:center;padding:28px;color:var(--muted);font-size:.84rem"><div style="font-size:2rem;margin-bottom:8px">👤</div>No patients registered yet.<br><a href="patients.html" style="color:var(--teal);font-weight:600">Register patients first →</a></div>`;
+        } else {
+          list.innerHTML = `<div style="text-align:center;padding:20px;color:var(--muted);font-size:.84rem">All patients have been allocated or no matches found.</div>`;
+        }
+        return;
+      }
+      list.innerHTML = patients.map(p => {
+        const isSel = selPatient && selPatient.patient_id === p.patient_id;
+        return `<div class="patient-option ${isSel ? 'selected' : ''}" onclick="selectPatient('${p.patient_id}')">
+      <div class="row1"><span class="pname">${p.name}</span><span class="badge ${urgBadge[p.urgency] || 'badge-gray'}">${p.urgency || '—'}</span></div>
+      <div class="pmeta">📍 ${p.location} · ${p.condition_desc || 'N/A'} · ${p.consult_type}</div>
     </div>`;
-  }).join('');
-}
+      }).join('');
+    }
 
-function selectPatient(id){
-  selPatient=Store.getPatients().find(p=>p.id===id);
-  selDoctor=null; selTransport=null;
-  renderPatients();
-  const btn=document.getElementById('nextBtn');
-  btn.disabled=false;
-  btn.textContent=`Find Matches for ${selPatient.name} →`;
-}
+    async function selectPatient(id) {
+      const all = await fetch('/api/patients').then(r => r.json());
+      selPatient = all.find(p => p.patient_id === id);
+      selDoctor = null; selTransport = null;
+      renderPatients();
+      const btn = document.getElementById('nextBtn');
+      btn.disabled = false;
+      btn.textContent = `Find Matches for ${selPatient.name} →`;
+    }
 
-function scoreDoctors(patient, doctors){
-  return doctors.map(d=>{
-    let score=50;
-    if(d.spec===patient.spec) score+=40;
-    else if(d.spec==='General') score+=10;
-    if(d.loc===patient.location) score+=20;
-    if(d.tele&&patient.consult==='Telemedicine') score+=10;
-    return {...d,score:Math.min(99,score)};
-  }).sort((a,b)=>b.score-a.score);
-}
+    function scoreDoctors(patient, doctors) {
+      return doctors.map(d => {
+        let score = 50;
+        if (d.specialization === patient.specialization_needed) score += 40;
+        else if (d.specialization === 'General') score += 10;
+        if (d.location === patient.location) score += 20;
+        if (d.telemedicine_enabled && patient.consult_type === 'telemedicine') score += 10;
+        return { ...d, score: Math.min(99, score) };
+      }).sort((a, b) => b.score - a.score);
+    }
 
-function goToStep2(){
-  if(!selPatient) return;
-  show('suggestionsPanel');
-  setStep(2);
-  document.getElementById('matchName').textContent=selPatient.name;
-  document.getElementById('urgencyInfo').innerHTML=`<div class="notice-pill" style="font-size:.8rem"><span class="badge ${urgBadge[selPatient.urgency]||'badge-gray'}" style="background:none;padding:0">${selPatient.urgency} urgency</span> · ${selPatient.condition||'N/A'} · Needs ${selPatient.spec}</div>`;
+    async function goToStep2() {
+      if (!selPatient) return;
+      show('suggestionsPanel'); setStep(2);
+      document.getElementById('matchName').textContent = selPatient.name;
+      document.getElementById('urgencyInfo').innerHTML =
+        `<div class="notice-pill" style="font-size:.8rem">
+      <span class="badge ${urgBadge[selPatient.urgency] || 'badge-gray'}" style="background:none;padding:0">${selPatient.urgency} urgency</span>
+      · ${selPatient.condition_desc || 'N/A'} · Needs ${selPatient.specialization_needed}
+    </div>`;
 
-  const avail=Store.getDoctors().filter(d=>d.status==='Available');
-  const scored=scoreDoctors(selPatient, avail);
-  const ds=document.getElementById('doctorSuggestions');
+      const all = await fetch('/api/doctors').then(r => r.json());
+      const avail = all.filter(d => d.status === 'available');
+      const scored = scoreDoctors(selPatient, avail);
+      const ds = document.getElementById('doctorSuggestions');
 
-  if(avail.length===0){
-    ds.innerHTML=`<div class="empty-suggestion"><div class="big">🩺</div>No available doctors.<br><a href="doctors.html" style="color:var(--teal);font-weight:600">Add doctors first →</a></div>`;
-    document.getElementById('confirmBtn').disabled=true;
-  } else {
-    ds.innerHTML=scored.slice(0,3).map(d=>`
-      <div class="suggestion-card ${selDoctor?.id===d.id?'selected':''}" onclick="pickDoctor('${d.id}')">
+      if (avail.length === 0) {
+        ds.innerHTML = `<div class="empty-suggestion"><div class="big">🩺</div>No available doctors.<br><a href="doctors.html" style="color:var(--teal);font-weight:600">Add doctors first →</a></div>`;
+        document.getElementById('confirmBtn').disabled = true;
+      } else {
+        ds.innerHTML = scored.slice(0, 3).map(d => `
+      <div class="suggestion-card ${selDoctor?.doctor_id === d.doctor_id ? 'selected' : ''}" onclick="pickDoctor('${d.doctor_id}')">
         <div class="s-top">
-          <div><div class="s-name">${d.emoji} ${d.name}</div><div class="s-spec">${d.spec}</div></div>
+          <div><div class="s-name">${emoji[d.gender] || '👨‍⚕️'} ${d.name}</div><div class="s-spec">${d.specialization}</div></div>
           <div class="s-score">Match ${d.score}%</div>
         </div>
         <div class="s-meta">
-          <span class="s-tag">📍 ${d.loc}</span>
-          ${d.tele?'<span class="s-tag">📡 Tele</span>':''}
-          <span class="s-tag">${d.exp} exp</span>
-          <span class="s-tag badge-green" style="background:var(--green-light);color:#15803d">Available</span>
+          <span class="s-tag">📍 ${d.location}</span>
+          ${d.telemedicine_enabled ? '<span class="s-tag">📡 Tele</span>' : ''}
+          <span class="s-tag">${d.experience_years} yrs exp</span>
+          <span class="s-tag" style="background:var(--green-light);color:#15803d">Available</span>
         </div>
       </div>`).join('');
-  }
+      }
 
-  // Transport — skip for telemedicine
-  const ts=document.getElementById('transportSection');
-  if(selPatient.consult==='Telemedicine'){
-    ts.innerHTML=`<div style="font-size:.82rem;color:var(--muted);padding:8px 0">No transport needed for telemedicine consultations.</div>`;
-    // Still need doctor selection
-    document.getElementById('confirmBtn').disabled=!selDoctor;
-  } else {
-    ts.innerHTML=TRANSPORTS.map(t=>`
-      <div class="transport-option ${selTransport?.id===t.id?'selected':''}" onclick="pickTransport('${t.id}')">
+      const ts = document.getElementById('transportSection');
+      if (selPatient.consult_type === 'telemedicine') {
+        ts.innerHTML = `<div style="font-size:.82rem;color:var(--muted);padding:8px 0">No transport needed for telemedicine consultations.</div>`;
+        document.getElementById('confirmBtn').disabled = !selDoctor;
+      } else {
+        ts.innerHTML = TRANSPORTS.map(t => `
+      <div class="transport-option ${selTransport?.id === t.id ? 'selected' : ''}" onclick="pickTransport('${t.id}')">
         <div><div style="font-size:.88rem;font-weight:700;color:var(--navy)">🚑 ${t.id} — ${t.type}</div></div>
         <span class="badge badge-green">ETA ${t.eta}</span>
       </div>`).join('');
-  }
-}
+      }
+    }
 
-function pickDoctor(id){
-  selDoctor=Store.getDoctors().find(d=>d.id===id);
-  goToStep2();
-  const needTransport=selPatient.consult!=='Telemedicine';
-  document.getElementById('confirmBtn').disabled=!(selDoctor&&(!needTransport||selTransport));
-}
-function pickTransport(id){
-  selTransport=TRANSPORTS.find(t=>t.id===id);
-  goToStep2();
-  document.getElementById('confirmBtn').disabled=!(selDoctor&&selTransport);
-}
+    async function pickDoctor(id) {
+      const all = await fetch('/api/doctors').then(r => r.json());
+      selDoctor = all.find(d => d.doctor_id === id);
+      goToStep2();
+      const needTransport = selPatient.consult_type !== 'telemedicine';
+      document.getElementById('confirmBtn').disabled = !(selDoctor && (!needTransport || selTransport));
+    }
 
-function goToStep3(){
-  show('confirmPanel'); setStep(3);
-  const hasTransport=selTransport&&selPatient.consult!=='Telemedicine';
-  document.getElementById('confirmDetails').innerHTML=`
+    function pickTransport(id) {
+      selTransport = TRANSPORTS.find(t => t.id === id);
+      goToStep2();
+      document.getElementById('confirmBtn').disabled = !(selDoctor && selTransport);
+    }
+
+    function goToStep3() {
+      show('confirmPanel'); setStep(3);
+      const hasTransport = selTransport && selPatient.consult_type !== 'telemedicine';
+      document.getElementById('confirmDetails').innerHTML = `
     <div style="background:#f0f9ff;border-radius:10px;padding:16px;border:1px solid #bae6fd;">
       <div style="font-size:.76rem;font-weight:700;color:var(--teal-dark);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px">Allocation Summary</div>
-      <div class="confirm-row"><span class="confirm-key">Patient</span><span class="confirm-val">${selPatient.name} (${selPatient.id})</span></div>
-      <div class="confirm-row"><span class="confirm-key">Condition</span><span class="confirm-val">${selPatient.condition||'N/A'}</span></div>
-      <div class="confirm-row"><span class="confirm-key">Urgency</span><span class="confirm-val"><span class="badge ${urgBadge[selPatient.urgency]||'badge-gray'}">${selPatient.urgency}</span></span></div>
+      <div class="confirm-row"><span class="confirm-key">Patient</span><span class="confirm-val">${selPatient.name} (${selPatient.patient_id})</span></div>
+      <div class="confirm-row"><span class="confirm-key">Condition</span><span class="confirm-val">${selPatient.condition_desc || 'N/A'}</span></div>
+      <div class="confirm-row"><span class="confirm-key">Urgency</span><span class="confirm-val"><span class="badge ${urgBadge[selPatient.urgency] || 'badge-gray'}">${selPatient.urgency}</span></span></div>
       <div class="confirm-row"><span class="confirm-key">Location</span><span class="confirm-val">${selPatient.location}</span></div>
-      <div class="confirm-row"><span class="confirm-key">Doctor</span><span class="confirm-val">${selDoctor.name} · ${selDoctor.spec}</span></div>
-      <div class="confirm-row"><span class="confirm-key">Consultation</span><span class="confirm-val">${selPatient.consult}</span></div>
-      ${hasTransport?`<div class="confirm-row"><span class="confirm-key">Transport</span><span class="confirm-val">${selTransport.id} · ETA ${selTransport.eta}</span></div>`:''}
+      <div class="confirm-row"><span class="confirm-key">Doctor</span><span class="confirm-val">${selDoctor.name} · ${selDoctor.specialization}</span></div>
+      <div class="confirm-row"><span class="confirm-key">Consultation</span><span class="confirm-val">${selPatient.consult_type}</span></div>
+      ${hasTransport ? `<div class="confirm-row"><span class="confirm-key">Transport</span><span class="confirm-val">${selTransport.id} · ETA ${selTransport.eta}</span></div>` : ''}
     </div>
     <div style="margin-top:12px"><div class="notice-pill">Confirming will mark the doctor as Busy and patient as Allocated.</div></div>`;
-}
+    }
 
-function finalConfirm(){
-  Store.addAllocation({
-    patientId:selPatient.id, patientName:selPatient.name,
-    doctorId:selDoctor.id, doctorName:selDoctor.name, doctorSpec:selDoctor.spec,
-    transport:selTransport?`${selTransport.id} (ETA ${selTransport.eta})`:'Telemedicine',
-    urgency:selPatient.urgency, location:selPatient.location, consult:selPatient.consult,
-  });
-  show('successPanel'); setStep(3,true);
-  document.getElementById('successMsg').textContent=
-    `${selPatient.name} allocated to ${selDoctor.name}${selTransport?' with '+selTransport.id+' dispatched (ETA '+selTransport.eta+')':' via telemedicine'}.`;
-  renderHistory();
-}
+    async function finalConfirm() {
+      await fetch('/api/allocations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          allocation_id: 'AL' + Date.now(),
+          patient_id: selPatient.patient_id,
+          doctor_id: selDoctor.doctor_id,
+          transport_id: selTransport ? selTransport.id : null,
+          urgency: selPatient.urgency,
+          consult_type: selPatient.consult_type
+        })
+      });
+      show('successPanel'); setStep(3, true);
+      document.getElementById('successMsg').textContent =
+        `${selPatient.name} allocated to ${selDoctor.name}${selTransport ? ' with ' + selTransport.id + ' dispatched (ETA ' + selTransport.eta + ')' : ' via telemedicine'}.`;
+      renderHistory();
+    }
 
-function resetAllocator(){
-  selPatient=null; selDoctor=null; selTransport=null;
-  document.getElementById('nextBtn').disabled=true;
-  document.getElementById('nextBtn').textContent='Find Best Matches →';
-  document.getElementById('ptSearch').value='';
-  renderPatients();
-  show('placeholderPanel'); setStep(1);
-}
+    function resetAllocator() {
+      selPatient = null; selDoctor = null; selTransport = null;
+      document.getElementById('nextBtn').disabled = true;
+      document.getElementById('nextBtn').textContent = 'Find Best Matches →';
+      document.getElementById('ptSearch').value = '';
+      renderPatients();
+      show('placeholderPanel'); setStep(1);
+    }
 
-function show(id){
-  ['placeholderPanel','suggestionsPanel','confirmPanel','successPanel'].forEach(pid=>{
-    document.getElementById(pid).style.display=pid===id?'block':'none';
-  });
-}
+    function show(id) {
+      ['placeholderPanel', 'suggestionsPanel', 'confirmPanel', 'successPanel'].forEach(pid => {
+        document.getElementById(pid).style.display = pid === id ? 'block' : 'none';
+      });
+    }
 
-function setStep(n,done3=false){
-  for(let i=1;i<=3;i++){
-    const s=document.getElementById('step'+i);
-    s.className='step';
-    if(i<n||(i===3&&done3)) s.classList.add('done');
-    else if(i===n) s.classList.add('active');
-  }
-  document.getElementById('line1').className='step-line'+(n>1?' done':'');
-  document.getElementById('line2').className='step-line'+(n>2||done3?' done':'');
-}
+    function setStep(n, done3 = false) {
+      for (let i = 1; i <= 3; i++) {
+        const s = document.getElementById('step' + i);
+        s.className = 'step';
+        if (i < n || (i === 3 && done3)) s.classList.add('done');
+        else if (i === n) s.classList.add('active');
+      }
+      document.getElementById('line1').className = 'step-line' + (n > 1 ? ' done' : '');
+      document.getElementById('line2').className = 'step-line' + (n > 2 || done3 ? ' done' : '');
+    }
 
-function goToStep1(){
-  show('placeholderPanel'); setStep(1);
-  selDoctor=null; selTransport=null;
-  renderPatients();
-}
+    function goToStep1() {
+      show('placeholderPanel'); setStep(1);
+      selDoctor = null; selTransport = null;
+      renderPatients();
+    }
 
-function timeAgo(iso){
-  const m=Math.floor((Date.now()-new Date(iso))/60000);
-  if(m<1)return'just now';if(m<60)return m+'m ago';
-  const h=Math.floor(m/60);if(h<24)return h+'h ago';
-  return Math.floor(h/24)+'d ago';
-}
+    function timeAgo(iso) {
+      const m = Math.floor((Date.now() - new Date(iso)) / 60000);
+      if (m < 1) return 'just now';
+      if (m < 60) return m + 'm ago';
+      const h = Math.floor(m / 60);
+      if (h < 24) return h + 'h ago';
+      return Math.floor(h / 24) + 'd ago';
+    }
 
-function renderHistory(){
-  const allocs=Store.getAllocations();
-  const el=document.getElementById('allocHistory');
-  if(allocs.length===0){
-    el.innerHTML=`<div class="history-empty">No allocations confirmed yet.</div>`;
-    return;
-  }
-  el.innerHTML=`<div class="table-wrap"><table>
+    async function renderHistory() {
+      const allocs = await fetch('/api/allocations').then(r => r.json());
+      const el = document.getElementById('allocHistory');
+      if (allocs.length === 0) {
+        el.innerHTML = `<div class="history-empty">No allocations confirmed yet.</div>`;
+        return;
+      }
+      el.innerHTML = `<div class="table-wrap"><table>
     <thead><tr><th>Patient</th><th>Doctor</th><th>Specialization</th><th>Transport</th><th>Urgency</th><th>Time</th></tr></thead>
-    <tbody>${allocs.map(a=>`
+    <tbody>${allocs.map(a => `
       <tr>
-        <td><strong>${a.patientName}</strong><div style="font-size:.74rem;color:var(--muted)">${a.location}</div></td>
-        <td>${a.doctorName}</td>
-        <td><span class="badge badge-blue">${a.doctorSpec}</span></td>
-        <td style="font-size:.82rem">${a.transport}</td>
-        <td><span class="badge ${urgBadge[a.urgency]||'badge-gray'}">${a.urgency}</span></td>
-        <td style="font-size:.78rem;color:var(--muted)">${timeAgo(a.confirmedAt)}</td>
+        <td><strong>${a.patient_name}</strong></td>
+        <td>${a.doctor_name}</td>
+        <td><span class="badge badge-blue">${a.specialization}</span></td>
+        <td style="font-size:.82rem">${a.transport_id || 'Telemedicine'}</td>
+        <td><span class="badge ${urgBadge[a.urgency] || 'badge-gray'}">${a.urgency}</span></td>
+        <td style="font-size:.78rem;color:var(--muted)">${timeAgo(a.confirmed_at)}</td>
       </tr>`).join('')}
     </tbody></table></div>`;
-}
+    }
 
-renderPatients();
-renderHistory();
-</script>
+    renderPatients();
+    renderHistory();
+  </script>
 </body>
+
 </html>
