@@ -6,7 +6,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>MediLink — Allocator</title>
   <link rel="stylesheet" href="shared.css" />
-  <script src="store.js"></script>
   <style>
     .allocator-grid {
       display: grid;
@@ -429,10 +428,10 @@
     let selPatient = null, selDoctor = null, selTransport = null;
 
     const TRANSPORTS = [
-      { id: 'AMB-01', type: 'Advanced Life Support', eta: '8 min' },
-      { id: 'AMB-02', type: 'Basic Ambulance', eta: '12 min' },
-      { id: 'AMB-03', type: 'Mobile Clinic', eta: '20 min' },
-      { id: 'AMB-04', type: 'Emergency Response', eta: '6 min' },
+      { id: 'TR-001', type: 'Advanced Life Support', eta: '8 min' },
+      { id: 'TR-002', type: 'Basic Ambulance', eta: '12 min' },
+      { id: 'TR-003', type: 'Mobile Clinic', eta: '20 min' },
+      { id: 'TR-004', type: 'Emergency Response', eta: '6 min' },
     ];
 
     async function renderPatients() {
