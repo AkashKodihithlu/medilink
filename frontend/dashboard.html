@@ -5,7 +5,7 @@
 <title>MediLink — Dashboard</title>
 <link rel="stylesheet" href="shared.css" />
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-<script src="store.js"></script>
+
 <style>
   .hero{display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:center;padding:52px 0 40px;}
   .hero-tag{display:inline-flex;align-items:center;gap:6px;background:var(--teal-light);color:var(--teal-dark);font-size:.78rem;font-weight:700;padding:5px 12px;border-radius:50px;margin-bottom:18px;text-transform:uppercase;letter-spacing:.04em;}
@@ -129,6 +129,8 @@
 
 let barInst=null, pieInst=null;
 
+const API = 'http://localhost:5000';
+
 function timeAgo(iso){
   const m=Math.floor((Date.now()-new Date(iso))/60000);
   if(m<1) return 'just now'; if(m<60) return m+'m ago';
@@ -136,36 +138,76 @@ function timeAgo(iso){
   return Math.floor(h/24)+'d ago';
 }
 
-function render(){
-  const stats=Store.getStats(), gaps=Store.getCoverageGaps();
-  const patients=Store.getPatients(), doctors=Store.getDoctors(), allocs=Store.getAllocations().slice(0,5);
+function computeGaps(patients, doctors){
+  const locationMap={};
+  patients.forEach(p=>{
+    const loc=(p.location||'').trim();
+    if(!locationMap[loc]) locationMap[loc]={patients:0,doctors:0,specs:new Set(),neededSpecs:new Set()};
+    locationMap[loc].patients++;
+    locationMap[loc].neededSpecs.add(p.specialization_needed||p.spec);
+  });
+  doctors.forEach(d=>{
+    const loc=(d.location||d.loc||'').trim();
+    if(!locationMap[loc]) locationMap[loc]={patients:0,doctors:0,specs:new Set(),neededSpecs:new Set()};
+    locationMap[loc].doctors++;
+    locationMap[loc].specs.add(d.specialization||d.spec);
+  });
+  return Object.entries(locationMap).map(([loc,data])=>{
+    const ratio=data.patients===0?1:data.doctors/data.patients;
+    let severity,coverage;
+    if(data.doctors===0&&data.patients>0){severity='Critical';coverage=0;}
+    else if(ratio<0.3){severity='Critical';coverage=Math.round(ratio*100);}
+    else if(ratio<0.6){severity='Moderate';coverage=Math.round(ratio*100);}
+    else if(ratio<1){severity='Low';coverage=Math.round(ratio*100);}
+    else{severity='Good';coverage=100;}
+    const missingSpecs=[...data.neededSpecs].filter(s=>!data.specs.has(s));
+    return{loc,patients:data.patients,doctors:data.doctors,severity,coverage,missingSpecs};
+  }).sort((a,b)=>a.coverage-b.coverage);
+}
+
+async function render(){
+  // Fetch all three in parallel
+  const [patients, doctors, allocs] = await Promise.all([
+    fetch(`${API}/api/patients`).then(r=>r.json()).catch(()=>[]),
+    fetch(`${API}/api/doctors`).then(r=>r.json()).catch(()=>[]),
+    fetch(`${API}/api/allocations`).then(r=>r.json()).catch(()=>[]),
+  ]);
+
+  // Compute stats from real data
+  const totalPatients    = patients.length;
+  const totalDoctors     = doctors.length;
+  const availableDoctors = doctors.filter(d=>(d.status||'').toLowerCase()==='available').length;
+  const criticalPatients = patients.filter(p=>(p.urgency||'').toLowerCase()==='critical'&&(p.status||'').toLowerCase()!=='allocated').length;
+  const pendingPatients  = patients.filter(p=>(p.status||'').toLowerCase()==='pending').length;
+  const teleEnabled      = doctors.filter(d=>d.telemedicine_enabled||d.tele).length;
+  const totalAllocations = allocs.length;
 
   // Efficiency
-  const eff=stats.totalPatients===0?0:Math.min(100,Math.round((stats.totalAllocations/Math.max(stats.totalPatients,1))*100));
+  const eff=totalPatients===0?0:Math.min(100,Math.round((totalAllocations/Math.max(totalPatients,1))*100));
   document.getElementById('effPct').textContent=eff+'%';
   document.getElementById('effBar').style.width=eff+'%';
   const b=document.getElementById('sysBadge');
   if(eff>=70){b.className='badge badge-green';b.textContent='● Optimal';}
   else if(eff>=30){b.className='badge badge-yellow';b.textContent='● Moderate';}
-  else if(stats.totalPatients>0){b.className='badge badge-orange';b.textContent='● Low';}
+  else if(totalPatients>0){b.className='badge badge-orange';b.textContent='● Low';}
   else{b.className='badge badge-gray';b.textContent='No Data';}
 
-  document.getElementById('hP').textContent=stats.totalPatients;
-  document.getElementById('hD').textContent=stats.availableDoctors;
-  document.getElementById('hC').textContent=stats.criticalPatients;
-  document.getElementById('hT').textContent=stats.teleEnabled;
-  document.getElementById('sP').textContent=stats.totalPatients;
-  document.getElementById('sPen').textContent=stats.pendingPatients+' pending';
-  document.getElementById('sAD').textContent=stats.availableDoctors;
-  document.getElementById('sTD').textContent='of '+stats.totalDoctors+' total';
-  document.getElementById('sCrit').textContent=stats.criticalPatients;
-  document.getElementById('sAlloc').textContent=stats.totalAllocations;
-  document.getElementById('sTele').textContent=stats.teleEnabled;
+  document.getElementById('hP').textContent=totalPatients;
+  document.getElementById('hD').textContent=availableDoctors;
+  document.getElementById('hC').textContent=criticalPatients;
+  document.getElementById('hT').textContent=teleEnabled;
+  document.getElementById('sP').textContent=totalPatients;
+  document.getElementById('sPen').textContent=pendingPatients+' pending';
+  document.getElementById('sAD').textContent=availableDoctors;
+  document.getElementById('sTD').textContent='of '+totalDoctors+' total';
+  document.getElementById('sCrit').textContent=criticalPatients;
+  document.getElementById('sAlloc').textContent=totalAllocations;
+  document.getElementById('sTele').textContent=teleEnabled;
 
-  // Bar
+  // Bar chart — patients vs doctors by region
   const locMap={};
-  patients.forEach(p=>{locMap[p.location]=locMap[p.location]||{p:0,d:0};locMap[p.location].p++;});
-  doctors.forEach(d=>{locMap[d.loc]=locMap[d.loc]||{p:0,d:0};locMap[d.loc].d++;});
+  patients.forEach(p=>{const l=(p.location||'').trim();locMap[l]=locMap[l]||{p:0,d:0};locMap[l].p++;});
+  doctors.forEach(d=>{const l=(d.location||d.loc||'').trim();locMap[l]=locMap[l]||{p:0,d:0};locMap[l].d++;});
   const labels=Object.keys(locMap);
   if(labels.length===0){
     document.getElementById('barChart').style.display='none';
@@ -187,9 +229,12 @@ function render(){
     });
   }
 
-  // Pie
+  // Pie chart — urgency mix
   const uc={Critical:0,High:0,Moderate:0,Low:0};
-  patients.forEach(p=>{if(uc[p.urgency]!==undefined) uc[p.urgency]++;});
+  patients.forEach(p=>{
+    const u=p.urgency?p.urgency.charAt(0).toUpperCase()+p.urgency.slice(1).toLowerCase():'';
+    if(uc[u]!==undefined) uc[u]++;
+  });
   if(Object.values(uc).every(v=>v===0)){
     document.getElementById('pieChart').style.display='none';
     document.getElementById('pieEmpty').style.display='block';
@@ -206,13 +251,15 @@ function render(){
     });
   }
 
-  // Recent allocs
+  // Recent allocations
+  const recent=allocs.slice(0,5);
   const ra=document.getElementById('recentAlloc');
-  ra.innerHTML=allocs.length===0
+  ra.innerHTML=recent.length===0
     ?`<div class="empty-state"><div class="big">🔗</div>No allocations yet. <a href="allocate.html" style="color:var(--teal);font-weight:600;">Start one →</a></div>`
-    :allocs.map(a=>`<div class="activity-item"><div class="activity-dot" style="background:var(--teal)"></div><div class="activity-text"><strong>${a.patientName}</strong> → ${a.doctorName} (${a.doctorSpec})</div><div class="activity-time">${timeAgo(a.confirmedAt)}</div></div>`).join('');
+    :recent.map(a=>`<div class="activity-item"><div class="activity-dot" style="background:var(--teal)"></div><div class="activity-text"><strong>${a.patientName||a.patient_name||'—'}</strong> → ${a.doctorName||a.doctor_name||'—'} (${a.doctorSpec||a.doctor_spec||'—'})</div><div class="activity-time">${timeAgo(a.confirmedAt||a.confirmed_at)}</div></div>`).join('');
 
-  // Coverage gaps
+  // Coverage gaps — computed client-side from real patient+doctor data
+  const gaps=computeGaps(patients,doctors);
   const cg=document.getElementById('coverageGaps');
   if(gaps.length===0){
     cg.innerHTML=`<div class="empty-state"><div class="big">🗺️</div>Add patients and doctors to see coverage analysis.</div>`;

@@ -4,7 +4,7 @@
 <meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>MediLink — Coverage Gaps</title>
 <link rel="stylesheet" href="shared.css"/>
-<script src="store.js"></script>
+
 <style>
   .gap-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px;margin-top:4px;}
   .gap-card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);border:1px solid var(--border);padding:20px;transition:box-shadow .2s,border-color .2s;}
@@ -83,21 +83,31 @@
      <button class="btn-outline" onclick="localStorage.removeItem('mp_user');window.location='login.html'">Log Out</button>`;
 })();
 
+const API = 'http://localhost:5000';
 const severityColor = {Critical:'#ef4444',Moderate:'#f97316',Low:'#eab308',Good:'var(--teal)'};
 const severityBadge = {Critical:'badge-red',Moderate:'badge-orange',Low:'badge-yellow',Good:'badge-green'};
 
-function render(){
-  const gaps = Store.getCoverageGaps();
-  const patients = Store.getPatients();
-  const doctors = Store.getDoctors();
+async function render(){
+  // Show loading state
+  document.getElementById('gapGrid').innerHTML =
+    `<div class="empty-state" style="grid-column:1/-1"><div class="big">⏳</div>Loading coverage data…</div>`;
 
-  // Summary
-  const critical = gaps.filter(g=>g.severity==='Critical').length;
-  const moderate = gaps.filter(g=>g.severity==='Moderate').length;
-  const good = gaps.filter(g=>g.severity==='Good').length;
-  const uniqueSpecs = new Set(doctors.map(d=>d.spec));
-  const neededSpecs = new Set(patients.map(p=>p.spec));
-  const missingTotal = [...neededSpecs].filter(s=>!uniqueSpecs.has(s)).length;
+  let gaps = [];
+  try {
+    const res = await fetch(`${API}/api/analytics/coverage`);
+    if (!res.ok) throw new Error('Server error ' + res.status);
+    gaps = await res.json();
+  } catch(err) {
+    document.getElementById('gapGrid').innerHTML =
+      `<div class="empty-state" style="grid-column:1/-1"><div class="big">⚠️</div>Could not load coverage data.<br><small style="color:var(--muted)">${err.message}</small></div>`;
+    return;
+  }
+
+  // Summary cards
+  const critical     = gaps.filter(g=>g.severity==='Critical').length;
+  const moderate     = gaps.filter(g=>g.severity==='Moderate').length;
+  const good         = gaps.filter(g=>g.severity==='Good').length;
+  const missingTotal = gaps.reduce((sum,g)=>sum+g.missingSpecs.length, 0);
 
   document.getElementById('summaryCards').innerHTML = `
     <div class="summary-card"><div class="sc-val" style="color:var(--navy)">${gaps.length}</div><div class="sc-lbl">Regions Tracked</div></div>
@@ -107,14 +117,14 @@ function render(){
     <div class="summary-card"><div class="sc-val" style="color:var(--teal)">${missingTotal}</div><div class="sc-lbl">Missing Specializations</div></div>
   `;
 
-  // Gap Cards
+  // Gap cards
   const grid = document.getElementById('gapGrid');
   if(gaps.length===0){
     grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><div class="big">🗺️</div>No coverage data yet.<br>Add patients and doctors to see gap analysis.<br><a href="patients.html" style="color:var(--teal);font-weight:600;margin-top:8px;display:inline-block;">Register patients →</a></div>`;
   } else {
     grid.innerHTML = gaps.map(g=>{
-      const clr = severityColor[g.severity];
-      const pct = g.severity==='Good' ? 100 : Math.max(6, g.coverage);
+      const clr   = severityColor[g.severity];
+      const pct   = g.severity==='Good' ? 100 : Math.max(6, g.coverage);
       const ratio = g.patients===0 ? 'N/A' : (g.doctors/g.patients).toFixed(2);
       return `<div class="gap-card">
         <div class="gap-card-top">

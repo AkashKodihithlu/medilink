@@ -4,7 +4,7 @@
 <meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>MediLink — Equipment Tracker</title>
 <link rel="stylesheet" href="shared.css"/>
-<script src="store.js"></script>
+
 <style>
   .top-bar{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:12px;}
   .search-bar{display:flex;align-items:center;gap:8px;background:#fff;border:1.5px solid var(--border);border-radius:10px;padding:8px 14px;min-width:200px;}
@@ -198,83 +198,127 @@
      <button class="btn-outline" onclick="localStorage.removeItem('mp_user');window.location='login.html'">Log Out</button>`;
 })();
 
-let filtered=[];
-let activeTransferId=null;
+const API = 'http://localhost:5000';
+let allEquipment = [];   // local cache — populated on load and after every mutation
+let filtered = [];
+let activeTransferId = null;
 
+// ── Helpers ──────────────────────────────────────────────────────
 function getCatClass(cat){
-  if(cat==='Diagnostic')return 'cat-diagnostic';
-  if(cat==='Life Support')return 'cat-life';
-  if(cat==='Mobility')return 'cat-mobility';
-  if(cat==='Imaging')return 'cat-imaging';
-  if(cat==='Emergency')return 'cat-emergency';
+  if(cat==='Diagnostic')  return 'cat-diagnostic';
+  if(cat==='Life Support') return 'cat-life';
+  if(cat==='Mobility')    return 'cat-mobility';
+  if(cat==='Imaging')     return 'cat-imaging';
+  if(cat==='Emergency')   return 'cat-emergency';
   return 'cat-general';
 }
 function getStatBadge(stat){
-  if(stat==='Available')return 'badge-green';
-  if(stat==='In Use')return 'badge-orange';
-  if(stat==='Maintenance')return 'badge-red';
+  const s = (stat||'').toLowerCase();
+  if(s==='active'    || s==='available') return 'badge-green';
+  if(s==='in use'    || s==='in-use')    return 'badge-orange';
+  if(s==='under-maintenance'||s==='maintenance') return 'badge-red';
   return 'badge-gray';
+}
+function getStatLabel(stat){
+  if(stat==='active')             return 'Available';
+  if(stat==='under-maintenance')  return 'Maintenance';
+  if(stat==='decommissioned')     return 'Decommissioned';
+  return stat;
 }
 function tFormat(iso){
   if(!iso) return '—';
-  const d=new Date(iso);
-  return d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+  return new Date(iso).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+}
+// Normalise DB row field names to match what the UI expects
+function normalise(e){
+  return {
+    id:               e.equipment_id || e.id,
+    name:             e.name,
+    category:         e.category ? e.category.charAt(0).toUpperCase()+e.category.slice(1) : '—',
+    facilityName:     e.facility_name     || e.facilityName,
+    facilityLocation: e.facility_location || e.facilityLocation || '',
+    serialNumber:     e.serial_number     || e.serialNumber     || '',
+    status:           getStatLabel(e.status),
+    rawStatus:        e.status,
+    purchaseDate:     e.purchase_date     || e.purchaseDate     || '',
+    createdAt:        e.created_at        || e.createdAt        || '',
+    updatedAt:        e.updated_at        || e.updatedAt        || '',
+  };
 }
 
+// ── Data load ────────────────────────────────────────────────────
+async function loadEquipment(){
+  try {
+    const res = await fetch(`${API}/api/equipment`);
+    if(!res.ok) throw new Error('Server error '+res.status);
+    const raw = await res.json();
+    allEquipment = raw.map(normalise);
+  } catch(err) {
+    allEquipment = [];
+    document.getElementById('eqTableBody').innerHTML =
+      `<tr><td colspan="6"><div class="empty-state"><div class="big">⚠️</div>Could not load equipment.<br><small style="color:var(--muted)">${err.message}</small></div></td></tr>`;
+  }
+  populateFacFilter();
+  renderStats();
+  applyFilters();
+}
+
+// ── Stats ────────────────────────────────────────────────────────
 function renderStats(){
-  const all=Store.getEquipment();
-  document.getElementById('stEqTotal').textContent=all.length;
-  document.getElementById('stEqAvail').textContent=all.filter(e=>e.status==='Available').length;
-  document.getElementById('stEqInUse').textContent=all.filter(e=>e.status==='In Use').length;
-  document.getElementById('stEqMaint').textContent=all.filter(e=>e.status==='Maintenance').length;
+  document.getElementById('stEqTotal').textContent = allEquipment.length;
+  document.getElementById('stEqAvail').textContent = allEquipment.filter(e=>e.status==='Available').length;
+  document.getElementById('stEqInUse').textContent = allEquipment.filter(e=>e.status==='In Use').length;
+  document.getElementById('stEqMaint').textContent = allEquipment.filter(e=>e.status==='Maintenance').length;
 }
 
+// ── Facility filter ──────────────────────────────────────────────
 function populateFacFilter(){
-  const all=Store.getEquipment();
-  const facs=[...new Set(all.map(e=>e.facilityName))].filter(Boolean).sort();
-  const sel=document.getElementById('facFilter');
-  sel.innerHTML='<option value="">All Facilities</option>'+facs.map(f=>`<option value="${f}">${f}</option>`).join('');
+  const facs = [...new Set(allEquipment.map(e=>e.facilityName))].filter(Boolean).sort();
+  const sel = document.getElementById('facFilter');
+  sel.innerHTML = '<option value="">All Facilities</option>'+facs.map(f=>`<option value="${f}">${f}</option>`).join('');
 }
 
+// ── Filter + render ──────────────────────────────────────────────
 function getFiltered(){
-  const cat=document.getElementById('catFilter').value;
-  const stat=document.getElementById('statFilter').value;
-  const fac=document.getElementById('facFilter').value;
-  const q=document.getElementById('searchInput').value.toLowerCase();
-  filtered=Store.getEquipment().filter(e=>
-    (!cat||e.category===cat)&&
-    (!stat||e.status===stat)&&
-    (!fac||e.facilityName===fac)&&
-    (!q||e.name.toLowerCase().includes(q)||e.facilityName.toLowerCase().includes(q))
+  const cat  = document.getElementById('catFilter').value;
+  const stat = document.getElementById('statFilter').value;
+  const fac  = document.getElementById('facFilter').value;
+  const q    = document.getElementById('searchInput').value.toLowerCase();
+  filtered = allEquipment.filter(e=>
+    (!cat  || e.category===cat) &&
+    (!stat || e.status===stat) &&
+    (!fac  || e.facilityName===fac) &&
+    (!q    || e.name.toLowerCase().includes(q) || e.facilityName.toLowerCase().includes(q))
   );
 }
 
 function renderTable(){
-  const tbody=document.getElementById('eqTableBody');
-  document.getElementById('eqCount').textContent=filtered.length;
+  const tbody = document.getElementById('eqTableBody');
+  document.getElementById('eqCount').textContent = filtered.length;
   if(filtered.length===0){
-    tbody.innerHTML=`<tr><td colspan="6"><div class="empty-state"><div class="big">🛠️</div>No equipment found. Add some above.</div></td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state"><div class="big">🛠️</div>No equipment found. Add some above.</div></td></tr>`;
     return;
   }
-  tbody.innerHTML=filtered.map(e=>`
+  tbody.innerHTML = filtered.map(e=>`
     <tr>
       <td><code style="font-size:.76rem;background:#f1f5f9;padding:2px 7px;border-radius:5px">${e.id}</code></td>
       <td><strong>${e.name}</strong><br><span class="cat-pill ${getCatClass(e.category)}">${e.category}</span></td>
       <td><strong>${e.facilityName}</strong><br><span style="font-size:.75rem;color:var(--muted)">${e.facilityLocation||'—'}</span></td>
-      <td><span class="badge ${getStatBadge(e.status)}">${e.status}</span></td>
+      <td><span class="badge ${getStatBadge(e.rawStatus)}">${e.status}</span></td>
       <td style="font-size:.75rem;color:var(--muted)">${tFormat(e.updatedAt)}</td>
       <td style="display:flex;gap:6px;">
         <button class="action-btn" onclick="openDrawer('${e.id}')">Details</button>
-        ${e.status==='Available'?`<button class="action-btn" onclick="toggleStatus('${e.id}','In Use')">Mark In Use</button>`:''}
-        ${e.status==='In Use'?`<button class="action-btn" onclick="toggleStatus('${e.id}','Available')">Mark Available</button>`:''}
+        ${e.rawStatus==='active'?`<button class="action-btn" onclick="toggleStatus('${e.id}','under-maintenance')">Mark Maintenance</button>`:''}
+        ${e.rawStatus==='under-maintenance'?`<button class="action-btn" onclick="toggleStatus('${e.id}','active')">Mark Available</button>`:''}
         <button class="action-btn danger" onclick="removeEquipment('${e.id}')">Remove</button>
       </td>
     </tr>
   `).join('');
 }
 
-function applyFilters(){getFiltered();renderTable();}
+function applyFilters(){ getFiltered(); renderTable(); }
 
+// ── Add modal ────────────────────────────────────────────────────
 function openModal(){
   document.getElementById('addModal').classList.add('open');
   document.getElementById('addErr').style.display='none';
@@ -282,58 +326,102 @@ function openModal(){
 }
 function closeModal(){
   document.getElementById('addModal').classList.remove('open');
-  ['e_name','e_cat','e_facName','e_facLoc','e_serial','e_date'].forEach(id=>document.getElementById(id).value='');
+  ['e_name','e_facName','e_facLoc','e_serial','e_date'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('e_cat').value='';
   document.getElementById('e_status').value='Available';
 }
-function backdropClick(e,id){if(e.target===document.getElementById(id)){id==='addModal'?closeModal():closeTransfer();}}
-document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal();closeDrawer();closeTransfer();}});
+function backdropClick(e,id){
+  if(e.target===document.getElementById(id)){ id==='addModal'?closeModal():closeTransfer(); }
+}
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){ closeModal(); closeDrawer(); closeTransfer(); }
+});
 
-function saveEquipment(){
-  const name=document.getElementById('e_name').value.trim();
-  const cat =document.getElementById('e_cat').value;
-  const facName=document.getElementById('e_facName').value.trim();
-  if(!name||!cat||!facName){document.getElementById('addErr').style.display='block';return;}
-  Store.addEquipment({
-    name, category:cat, facilityName:facName,
-    facilityLocation:document.getElementById('e_facLoc').value.trim(),
-    serialNumber:document.getElementById('e_serial').value.trim(),
-    status:document.getElementById('e_status').value,
-    purchaseDate:document.getElementById('e_date').value
-  });
-  closeModal(); populateFacFilter(); renderStats(); applyFilters();
+async function saveEquipment(){
+  const name    = document.getElementById('e_name').value.trim();
+  const cat     = document.getElementById('e_cat').value;
+  const facName = document.getElementById('e_facName').value.trim();
+  const serial  = document.getElementById('e_serial').value.trim();
+  const date    = document.getElementById('e_date').value;
+  if(!name||!cat||!facName||!serial||!date){
+    document.getElementById('addErr').style.display='block';
+    document.getElementById('addErr').textContent='Please fill in Name, Category, Facility Name, Serial Number and Purchase Date.';
+    return;
+  }
+
+  // Map UI status label → DB enum value
+  const statusMap = {'Available':'active','In Use':'active','Maintenance':'under-maintenance'};
+  const rawStat   = statusMap[document.getElementById('e_status').value] || 'active';
+
+  try {
+    const res = await fetch(`${API}/api/equipment`, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        name, category: cat.toLowerCase(),
+        facilityName: facName,
+        facilityLocation: document.getElementById('e_facLoc').value.trim(),
+        serialNumber: serial,
+        status: rawStat,
+        purchaseDate: date,
+      })
+    });
+    const data = await res.json();
+    if(!res.ok){ document.getElementById('addErr').style.display='block'; document.getElementById('addErr').textContent=data.error||'Save failed.'; return; }
+    closeModal();
+    await loadEquipment();
+  } catch(err){
+    document.getElementById('addErr').style.display='block';
+    document.getElementById('addErr').textContent='Network error: '+err.message;
+  }
 }
 
-function removeEquipment(id){
-  if(confirm('Remove this equipment?')){Store.deleteEquipment(id);populateFacFilter();renderStats();applyFilters();}
+// ── Remove ───────────────────────────────────────────────────────
+async function removeEquipment(id){
+  if(!confirm('Remove this equipment?')) return;
+  try {
+    const res = await fetch(`${API}/api/equipment/${id}`, { method:'DELETE' });
+    if(!res.ok){ const d=await res.json(); alert(d.error||'Delete failed'); return; }
+    await loadEquipment();
+  } catch(err){ alert('Network error: '+err.message); }
 }
 
-function toggleStatus(id, stat){
-  Store.updateEquipmentStatus(id, stat);
-  renderStats(); applyFilters();
+// ── Toggle status ────────────────────────────────────────────────
+async function toggleStatus(id, newRawStatus){
+  try {
+    const res = await fetch(`${API}/api/equipment/${id}/status`, {
+      method:'PATCH',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ status: newRawStatus })
+    });
+    if(!res.ok){ const d=await res.json(); alert(d.error||'Update failed'); return; }
+    await loadEquipment();
+  } catch(err){ alert('Network error: '+err.message); }
 }
 
+// ── Drawer ───────────────────────────────────────────────────────
 function openDrawer(id){
-  const e=Store.getEquipment().find(x=>x.id===id);
-  if(!e)return;
-  document.getElementById('dTitle').textContent=e.name;
-  document.getElementById('dKeyVals').innerHTML=`
+  const e = allEquipment.find(x=>x.id===id);
+  if(!e) return;
+  document.getElementById('dTitle').textContent = e.name;
+  document.getElementById('dKeyVals').innerHTML = `
     <div class="kv-row"><span class="kv-key">Equipment ID</span><span class="kv-val"><code style="background:#f1f5f9;padding:2px 6px;border-radius:4px">${e.id}</code></span></div>
     <div class="kv-row"><span class="kv-key">Category</span><span class="kv-val"><span class="cat-pill ${getCatClass(e.category)}" style="margin:0">${e.category}</span></span></div>
     <div class="kv-row"><span class="kv-key">Serial Number</span><span class="kv-val">${e.serialNumber||'N/A'}</span></div>
-    <div class="kv-row"><span class="kv-key">Status</span><span class="kv-val"><span class="badge ${getStatBadge(e.status)}" style="margin:0">${e.status}</span></span></div>
-    <div class="kv-row"><span class="kv-key">Purchase Date</span><span class="kv-val">${e.purchaseDate?tFormat(e.purchaseDate):'N/A'}</span></div>
+    <div class="kv-row"><span class="kv-key">Status</span><span class="kv-val"><span class="badge ${getStatBadge(e.rawStatus)}" style="margin:0">${e.status}</span></span></div>
+    <div class="kv-row"><span class="kv-key">Purchase Date</span><span class="kv-val">${tFormat(e.purchaseDate)}</span></div>
     <div class="kv-row"><span class="kv-key">Last Updated</span><span class="kv-val">${tFormat(e.updatedAt)}</span></div>
   `;
-  document.getElementById('dFac').innerHTML=`
+  document.getElementById('dFac').innerHTML = `
     <div style="font-size:.76rem;color:var(--teal-dark);text-transform:uppercase;font-weight:700;margin-bottom:6px">Current Facility</div>
     <div style="font-weight:800;color:var(--navy);font-size:1.05rem">${e.facilityName}</div>
     <div style="color:var(--slate);font-size:.85rem;margin-top:2px">${e.facilityLocation||'No location specifics'}</div>
   `;
-  let tl=`<div class="tl-item"><div class="tl-dot"></div><div class="tl-text">Added to system</div><div class="tl-date">${tFormat(e.createdAt)}</div></div>`;
-  if(e.createdAt!==e.updatedAt) tl=`<div class="tl-item"><div class="tl-dot"></div><div class="tl-text">Status updated to ${e.status}</div><div class="tl-date">${tFormat(e.updatedAt)}</div></div>`+tl;
-  document.getElementById('dTime').innerHTML=tl;
-  const tb=document.getElementById('dTransBtn');
-  tb.onclick=()=>openTransfer(e.id);
+  let tl = `<div class="tl-item"><div class="tl-dot"></div><div class="tl-text">Added to system</div><div class="tl-date">${tFormat(e.createdAt)}</div></div>`;
+  if(e.createdAt !== e.updatedAt)
+    tl = `<div class="tl-item"><div class="tl-dot"></div><div class="tl-text">Status updated to ${e.status}</div><div class="tl-date">${tFormat(e.updatedAt)}</div></div>` + tl;
+  document.getElementById('dTime').innerHTML = tl;
+  document.getElementById('dTransBtn').onclick = ()=>openTransfer(e.id);
   document.getElementById('drawerBack').classList.add('open');
   document.getElementById('sideDrawer').classList.add('open');
 }
@@ -342,33 +430,58 @@ function closeDrawer(){
   document.getElementById('sideDrawer').classList.remove('open');
 }
 
+// ── Transfer modal ───────────────────────────────────────────────
 function openTransfer(id){
   closeDrawer();
-  const e=Store.getEquipment().find(x=>x.id===id);
-  if(!e)return;
-  activeTransferId=id;
-  document.getElementById('transItem').textContent=`Transferring: ${e.name} (${e.id})`;
+  const e = allEquipment.find(x=>x.id===id);
+  if(!e) return;
+  activeTransferId = id;
+  document.getElementById('transItem').textContent = `Transferring: ${e.name} (${e.id})`;
   document.getElementById('transModal').classList.add('open');
   document.getElementById('t_dest').focus();
 }
 function closeTransfer(){
   document.getElementById('transModal').classList.remove('open');
-  activeTransferId=null;
+  activeTransferId = null;
   ['t_dest','t_loc','t_reason','t_date'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('transErr').style.display='none';
 }
-function submitTransfer(){
-  const dest=document.getElementById('t_dest').value.trim();
-  const res =document.getElementById('t_reason').value.trim();
-  if(!dest||!res){document.getElementById('transErr').style.display='block';return;}
-  Store.updateEquipmentFacility(activeTransferId, dest, document.getElementById('t_loc').value.trim());
-  Store.updateEquipmentStatus(activeTransferId, 'Transferred');
-  closeTransfer(); populateFacFilter(); renderStats(); applyFilters();
+async function submitTransfer(){
+  const dest   = document.getElementById('t_dest').value.trim();
+  const reason = document.getElementById('t_reason').value.trim();
+  const urgency= document.querySelector('input[name="t_urg"]:checked')?.value || 'medium';
+  const date   = document.getElementById('t_date').value;
+  if(!dest||!reason){ document.getElementById('transErr').style.display='block'; return; }
+
+  const e = allEquipment.find(x=>x.id===activeTransferId);
+
+  try {
+    // 1. Log the transfer request in DB
+    await fetch(`${API}/api/transfers`, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        equipmentId:   activeTransferId,
+        fromFacility:  e ? e.facilityName : 'Unknown',
+        toFacility:    dest,
+        reason,
+        urgency:       urgency.toLowerCase(),
+        dateNeeded:    date || new Date().toISOString().split('T')[0],
+      })
+    });
+    // 2. Mark equipment as decommissioned until transfer completes
+    await fetch(`${API}/api/equipment/${activeTransferId}/status`, {
+      method:'PATCH',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ status:'decommissioned' })
+    });
+    closeTransfer();
+    await loadEquipment();
+  } catch(err){ alert('Network error: '+err.message); }
 }
 
-populateFacFilter();
-renderStats();
-applyFilters();
+// ── Boot ─────────────────────────────────────────────────────────
+loadEquipment();
 </script>
 </body>
 </html>
