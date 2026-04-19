@@ -130,7 +130,7 @@ CREATE TABLE telemedicine_slots (
     UNIQUE KEY uq_doctor_slot (doctor_id, slot_date, slot_time),
 
     CONSTRAINT fk_slot_doctor
-        FOREIGN KEY (doctor_id)  REFERENCES doctors (patient_id)    -- ← doctors
+        FOREIGN KEY (doctor_id)  REFERENCES doctors (doctor_id)    -- ← doctors
         ON UPDATE CASCADE ON DELETE RESTRICT,
 
     CONSTRAINT fk_slot_patient

@@ -1,15 +1,23 @@
-const express  = require('express');
-const cors     = require('cors');
-const mysql    = require('mysql2/promise');
-const bcrypt   = require('bcryptjs');
-const path     = require('path');
+const express = require('express');
+const cors = require('cors');
+const mysql = require('mysql2/promise');
+const bcrypt = require('bcryptjs');
+const path = require('path');
+require('dotenv').config();
 
-const app  = express();
-const PORT = 5000;
+const session = require('express-session');
+const app = express();
+const PORT = process.env.PORT || 5000;
 
 // ── Middleware ───────────────────────────────────────────────────
 app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
+app.use(session({
+  secret: 'medilink_secret',
+  resave: false,
+  saveUninitialized: false,
+  cookie: { maxAge: 1000 * 60 * 60 * 24 }
+}));
 
 // Serve frontend static files
 app.use(express.static(path.join(__dirname, 'frontend')));
@@ -17,10 +25,10 @@ app.use(express.static(path.join(__dirname, 'frontend')));
 // ── Database connection pool ────────────────────────────────────
 // Using the medilink user we created earlier
 const pool = mysql.createPool({
-  host:     'localhost',
-  user:     'root',
-  password: 'A@dish2oo6',
-  database: 'medilink_db',
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME,
   waitForConnections: true,
   connectionLimit: 10,
 });
@@ -109,11 +117,17 @@ app.post('/api/login', async (req, res) => {
       return res.status(401).json({ error: 'Incorrect password' });
     }
 
+    req.session.user = {
+      name: `${user.first_name} ${user.last_name}`,
+      email: user.email,
+      role: user.role
+    };
+
     res.json({
       message: 'Login successful',
-      name:  `${user.first_name} ${user.last_name}`,
+      name: `${user.first_name} ${user.last_name}`,
       email: user.email,
-      role:  user.role
+      role: user.role
     });
 
   } catch (err) {
@@ -124,11 +138,13 @@ app.post('/api/login', async (req, res) => {
 
 // ── LOGOUT ──────────────────────────────────────────────────────
 app.post('/api/logout', (req, res) => {
+  req.session.destroy();
   res.json({ message: 'Logged out' });
 });
 
 // ── CHECK SESSION ───────────────────────────────────────────────
 app.get('/api/me', (req, res) => {
+  if (req.session.user) return res.json({ loggedIn: true, ...req.session.user });
   res.status(401).json({ loggedIn: false });
 });
 
@@ -242,83 +258,105 @@ app.post('/api/transfers', async (req, res) => {
   }
 });
 
-// ── PATIENTS (read-only for now) ─────────────────────────────────
 app.get('/api/patients', async (req, res) => {
-  try {
-    const [rows] = await pool.query('SELECT * FROM patients ORDER BY created_at DESC');
-    res.json(rows);
-  } catch (err) {
-    console.error('Patients fetch error:', err.message);
-    res.status(500).json({ error: 'Failed to fetch patients' });
-  }
+  const [rows] = await pool.query('SELECT * FROM patients ORDER BY created_at DESC');
+  res.json(rows);
 });
 
-// ── DOCTORS (read-only for now) ──────────────────────────────────
+app.post('/api/patients', async (req, res) => {
+  const { patient_id, name, age, location, condition_desc, urgency, consult_type, specialization_needed } = req.body;
+  await pool.query(
+    'INSERT INTO patients VALUES (?, ?, ?, ?, ?, ?, ?, ?, "pending", NOW())',
+    [patient_id, name, age, location, condition_desc, urgency, consult_type, specialization_needed]
+  );
+  res.status(201).json({ message: 'Patient added' });
+});
+
+app.delete('/api/patients/:id', async (req, res) => {
+  await pool.query('DELETE FROM patients WHERE patient_id = ?', [req.params.id]);
+  res.json({ message: 'Deleted' });
+});
+
 app.get('/api/doctors', async (req, res) => {
-  try {
-    const [rows] = await pool.query('SELECT * FROM doctors ORDER BY created_at DESC');
-    res.json(rows);
-  } catch (err) {
-    console.error('Doctors fetch error:', err.message);
-    res.status(500).json({ error: 'Failed to fetch doctors' });
-  }
+  const [rows] = await pool.query('SELECT * FROM doctors ORDER BY created_at DESC');
+  res.json(rows);
 });
 
-// ── ALLOCATIONS (read-only for now) ─────────────────────────────
+
+app.post('/api/doctors', async (req, res) => {
+  const { doctor_id, name, specialization, location, experience_years, telemedicine_enabled, gender } = req.body;
+  await pool.query(
+    'INSERT INTO doctors (doctor_id, name, specialization, location, experience_years, telemedicine_enabled, gender) VALUES (?, ?, ?, ?, ?, ?, ?)',
+    [doctor_id, name, specialization, location, experience_years, telemedicine_enabled, gender]
+  );
+  res.status(201).json({ message: 'Doctor added' });
+});
+
+
+app.delete('/api/doctors/:id', async (req, res) => {
+  await pool.query('DELETE FROM doctors WHERE doctor_id = ?', [req.params.id]);
+  res.json({ message: 'Deleted' });
+});
+
+
 app.get('/api/allocations', async (req, res) => {
+  const [rows] = await pool.query(`
+    SELECT a.*, p.name AS patient_name, d.name AS doctor_name, d.specialization
+    FROM allocations a
+    JOIN patients p ON a.patient_id = p.patient_id
+    JOIN doctors d ON a.doctor_id = d.doctor_id
+    ORDER BY a.confirmed_at DESC
+  `);
+  res.json(rows);
+});
+
+
+
+app.post('/api/allocations', async (req, res) => {
+  const { allocation_id, patient_id, doctor_id, transport_id, urgency, consult_type } = req.body;
+  const conn = await pool.getConnection();
   try {
-    const [rows] = await pool.query('SELECT * FROM allocations ORDER BY confirmed_at DESC');
-    res.json(rows);
+    await conn.beginTransaction();
+    await conn.query(
+      'INSERT INTO allocations (allocation_id, patient_id, doctor_id, transport_id, urgency, consult_type) VALUES (?, ?, ?, ?, ?, ?)',
+      [allocation_id, patient_id, doctor_id, transport_id || null, urgency, consult_type]
+    );
+    await conn.query('UPDATE doctors SET status = "busy" WHERE doctor_id = ?', [doctor_id]);
+    await conn.query('UPDATE patients SET status = "allocated" WHERE patient_id = ?', [patient_id]);
+    await conn.commit();
+    res.status(201).json({ message: 'Allocated' });
   } catch (err) {
-    console.error('Allocations fetch error:', err.message);
-    res.status(500).json({ error: 'Failed to fetch allocations' });
+    await conn.rollback();
+    res.status(500).json({ error: err.message });
+  } finally {
+    conn.release();
   }
 });
 
-// ── ANALYTICS: COVERAGE GAPS ─────────────────────────────────────
 app.get('/api/analytics/coverage', async (req, res) => {
-  try {
-    // Fetch patients and doctors grouped by location
-    const [[patients], [doctors]] = await Promise.all([
-      pool.query('SELECT location, specialization_needed FROM patients'),
-      pool.query('SELECT location, specialization FROM doctors'),
-    ]);
-
-    const locationMap = {};
-
-    patients.forEach(p => {
-      const loc = (p.location || '').trim();
-      if (!locationMap[loc]) locationMap[loc] = { patients:0, doctors:0, specs:new Set(), neededSpecs:new Set() };
-      locationMap[loc].patients++;
-      locationMap[loc].neededSpecs.add(p.specialization_needed);
-    });
-
-    doctors.forEach(d => {
-      const loc = (d.location || '').trim();
-      if (!locationMap[loc]) locationMap[loc] = { patients:0, doctors:0, specs:new Set(), neededSpecs:new Set() };
-      locationMap[loc].doctors++;
-      locationMap[loc].specs.add(d.specialization);
-    });
-
-    const gaps = Object.entries(locationMap).map(([loc, data]) => {
-      const ratio = data.patients === 0 ? 1 : data.doctors / data.patients;
-      let severity, coverage;
-      if (data.doctors === 0 && data.patients > 0) { severity = 'Critical'; coverage = 0; }
-      else if (ratio < 0.3) { severity = 'Critical'; coverage = Math.round(ratio * 100); }
-      else if (ratio < 0.6) { severity = 'Moderate'; coverage = Math.round(ratio * 100); }
-      else if (ratio < 1)   { severity = 'Low';      coverage = Math.round(ratio * 100); }
-      else                  { severity = 'Good';     coverage = 100; }
-
-      const missingSpecs = [...data.neededSpecs].filter(s => !data.specs.has(s));
-      return { loc, patients: data.patients, doctors: data.doctors, severity, coverage, missingSpecs };
-    }).sort((a, b) => a.coverage - b.coverage);
-
-    res.json(gaps);
-  } catch (err) {
-    console.error('Coverage analytics error:', err.message);
-    res.status(500).json({ error: 'Failed to compute coverage gaps' });
-  }
+  const [rows] = await pool.query(`
+    SELECT 
+      location,
+      COUNT(DISTINCT doctor_id) AS doctors,
+      COUNT(DISTINCT patient_id) AS patients,
+      CASE
+        WHEN COUNT(DISTINCT doctor_id) = 0 THEN 'Critical'
+        WHEN COUNT(DISTINCT patient_id) / COUNT(DISTINCT doctor_id) > 3 THEN 'Critical'
+        WHEN COUNT(DISTINCT patient_id) / COUNT(DISTINCT doctor_id) > 2 THEN 'Moderate'
+        ELSE 'Good'
+      END AS severity
+    FROM (
+      SELECT location, NULL AS doctor_id, patient_id FROM patients
+      UNION ALL
+      SELECT location, doctor_id, NULL AS patient_id FROM doctors
+    ) combined
+    GROUP BY location
+    ORDER BY doctors ASC
+  `);
+  res.json(rows);
 });
+
+
 
 // ── Catch-all: serve index.html for any unmatched route ─────────
 app.get('*', (req, res) => {
